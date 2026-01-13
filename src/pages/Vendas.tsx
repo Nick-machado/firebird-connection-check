@@ -10,8 +10,9 @@ interface VendaItem {
   [key: string]: string | number | null;
 }
 
+const API_URL = "https://dashboard-api-yjnf.onrender.com";
+
 const Vendas = () => {
-  const [apiUrl, setApiUrl] = useState("http://localhost:3001");
   const [dataInicio, setDataInicio] = useState("01/01/2025");
   const [dataFim, setDataFim] = useState("31/12/2025");
   const [loading, setLoading] = useState(false);
@@ -26,7 +27,7 @@ const Vendas = () => {
     setColumns([]);
 
     try {
-      const url = `${apiUrl}/api/vendas?dataInicio=${encodeURIComponent(dataInicio)}&dataFim=${encodeURIComponent(dataFim)}`;
+      const url = `${API_URL}/api/vendas?dataInicio=${encodeURIComponent(dataInicio)}&dataFim=${encodeURIComponent(dataFim)}`;
       const response = await fetch(url);
       const result = await response.json();
 
@@ -70,15 +71,7 @@ const Vendas = () => {
             <CardTitle>Filtros</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">URL da API</label>
-                <Input
-                  value={apiUrl}
-                  onChange={(e) => setApiUrl(e.target.value)}
-                  placeholder="http://localhost:3001"
-                />
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Data Início</label>
                 <Input
