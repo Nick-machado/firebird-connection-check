@@ -19,11 +19,15 @@ export function FaturamentoMensalChart({
 }: FaturamentoMensalChartProps) {
   // Combina os dados para o gráfico
   const chartData = dataAnoAtual.map((item) => {
-    const anoAnteriorItem = dataAnoAnterior?.find((a) => a.mes === item.mes);
+    const anoAnteriorItem = (dataAnoAnterior || []).find(
+      (a) => Number(a.mes) === Number(item.mes)
+    );
     return {
       mes: item.mesNome,
-      [anoAtual]: item.valor,
-      ...(anoAnterior && anoAnteriorItem ? { [anoAnterior]: anoAnteriorItem.valor } : {}),
+      [String(anoAtual)]: item.valor,
+      ...(anoAnterior && anoAnteriorItem 
+        ? { [String(anoAnterior)]: anoAnteriorItem.valor } 
+        : {}),
     };
   });
 
@@ -58,8 +62,8 @@ export function FaturamentoMensalChart({
             <Legend />
             <Line
               type="monotone"
-              dataKey={anoAtual}
-              name={`${anoAtual}`}
+              dataKey={String(anoAtual)}
+              name={String(anoAtual)}
               stroke={CHART_COLORS.primary}
               strokeWidth={2}
               dot={{ fill: CHART_COLORS.primary, strokeWidth: 2 }}
@@ -68,8 +72,8 @@ export function FaturamentoMensalChart({
             {anoAnterior && (
               <Line
                 type="monotone"
-                dataKey={anoAnterior}
-                name={`${anoAnterior}`}
+                dataKey={String(anoAnterior)}
+                name={String(anoAnterior)}
                 stroke={CHART_COLORS.muted}
                 strokeWidth={2}
                 strokeDasharray="5 5"
