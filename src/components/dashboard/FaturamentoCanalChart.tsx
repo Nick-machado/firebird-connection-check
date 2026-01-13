@@ -39,25 +39,49 @@ export function FaturamentoCanalChart({ data }: FaturamentoCanalChartProps) {
     return null;
   };
 
+  // Renderiza label customizado para o gráfico de pizza
+  const renderCustomLabel = ({ canal, percentual, cx, cy, midAngle, outerRadius }: any) => {
+    const RADIAN = Math.PI / 180;
+    const radius = outerRadius + 30;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    
+    // Trunca nomes muito longos apenas no label externo
+    const displayName = canal.length > 15 ? canal.substring(0, 12) + '...' : canal;
+    
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="hsl(var(--muted-foreground))"
+        textAnchor={x > cx ? 'start' : 'end'}
+        dominantBaseline="central"
+        fontSize={11}
+      >
+        {`${displayName} (${formatPercent(percentual)})`}
+      </text>
+    );
+  };
+
   return (
-    <Card className="shadow-elegant">
+    <Card className="shadow-elegant border-border/50 bg-card/80 backdrop-blur-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold">Faturamento por Canal</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={320}>
           <PieChart>
             <Pie
               data={chartData}
               cx="50%"
               cy="50%"
-              innerRadius={60}
-              outerRadius={100}
+              innerRadius={50}
+              outerRadius={85}
               paddingAngle={2}
               dataKey="valor"
               nameKey="canal"
-              label={({ canal, percentual }) => `${canal} (${formatPercent(percentual)})`}
-              labelLine={{ stroke: "hsl(var(--muted-foreground))" }}
+              label={renderCustomLabel}
+              labelLine={{ stroke: "hsl(var(--muted-foreground))", strokeWidth: 1 }}
             >
               {chartData.map((_, index) => (
                 <Cell key={`cell-${index}`} fill={CHART_PALETTE[index % CHART_PALETTE.length]} />

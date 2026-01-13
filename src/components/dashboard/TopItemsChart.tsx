@@ -3,6 +3,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 import { formatCompactCurrency, formatCurrency } from "@/lib/formatters";
 import type { TopItem } from "@/types/venda";
 import { CHART_COLORS } from "@/lib/constants";
+import { useMemo } from "react";
 
 interface TopItemsChartProps {
   data: TopItem[];
@@ -11,22 +12,93 @@ interface TopItemsChartProps {
   horizontal?: boolean;
 }
 
+// Calcula largura estimada de texto em pixels
+function estimateTextWidth(text: string, fontSize: number = 11): number {
+  const avgCharWidth = fontSize * 0.6;
+  return text.length * avgCharWidth;
+}
+
+// Encontra a largura máxima necessária para os labels
+function calculateMaxLabelWidth(items: string[], fontSize: number = 11, maxWidth: number = 300): number {
+  const maxTextWidth = Math.max(...items.map(item => estimateTextWidth(item, fontSize)));
+  return Math.min(maxTextWidth + 20, maxWidth);
+}
+
 export function TopItemsChart({ data, title, color = CHART_COLORS.primary, horizontal = true }: TopItemsChartProps) {
-  // Trunca nomes longos - aumentado para mostrar mais caracteres
-  const chartData = data.map((item) => ({
-    ...item,
-    nomeDisplay: item.nome.length > 40 ? item.nome.substring(0, 37) + "..." : item.nome,
-  }));
+  // Calcula dimensões dinâmicas baseadas nos dados
+  const { chartData, yAxisWidth, leftMargin, chartHeight } = useMemo(() => {
+    const names = data.map(item => item.nome);
+    const maxLabelWidth = calculateMaxLabelWidth(names, 11, 350);
+    const itemHeight = 40; // altura por item
+    const minHeight = 300;
+    const calculatedHeight = Math.max(minHeight, data.length * itemHeight + 50);
+    
+    return {
+      chartData: data.map((item) => ({
+        ...item,
+        nomeDisplay: item.nome, // Mostra nome completo
+      })),
+      yAxisWidth: maxLabelWidth,
+      leftMargin: maxLabelWidth + 10,
+      chartHeight: calculatedHeight,
+    };
+  }, [data]);
+
+  // Renderiza label customizado para Y-axis com quebra de linha se necessário
+  const CustomYAxisTick = ({ x, y, payload }: any) => {
+    const text = payload.value;
+    const maxCharsPerLine = 45;
+    
+    if (text.length <= maxCharsPerLine) {
+      return (
+        <text
+          x={x}
+          y={y}
+          dy={4}
+          textAnchor="end"
+          fill="hsl(var(--muted-foreground))"
+          fontSize={11}
+        >
+          {text}
+        </text>
+      );
+    }
+    
+    // Quebra em múltiplas linhas
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
+    
+    words.forEach((word: string) => {
+      if ((currentLine + ' ' + word).trim().length <= maxCharsPerLine) {
+        currentLine = (currentLine + ' ' + word).trim();
+      } else {
+        if (currentLine) lines.push(currentLine);
+        currentLine = word;
+      }
+    });
+    if (currentLine) lines.push(currentLine);
+    
+    return (
+      <text x={x} y={y} textAnchor="end" fill="hsl(var(--muted-foreground))" fontSize={10}>
+        {lines.map((line, i) => (
+          <tspan key={i} x={x} dy={i === 0 ? -(lines.length - 1) * 6 : 12}>
+            {line}
+          </tspan>
+        ))}
+      </text>
+    );
+  };
 
   return (
-    <Card className="shadow-elegant">
+    <Card className="shadow-elegant border-border/50 bg-card/80 backdrop-blur-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={400}>
+        <ResponsiveContainer width="100%" height={chartHeight}>
           {horizontal ? (
-            <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 20, left: 180, bottom: 5 }}>
+            <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 20, left: leftMargin, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal />
               <XAxis
                 type="number"
@@ -37,9 +109,10 @@ export function TopItemsChart({ data, title, color = CHART_COLORS.primary, horiz
               <YAxis
                 type="category"
                 dataKey="nomeDisplay"
-                width={175}
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                width={yAxisWidth}
+                tick={<CustomYAxisTick />}
                 axisLine={{ stroke: "hsl(var(--border))" }}
+                interval={0}
               />
               <Tooltip
                 formatter={(value: number) => formatCurrency(value)}
@@ -57,15 +130,16 @@ export function TopItemsChart({ data, title, color = CHART_COLORS.primary, horiz
               <Bar dataKey="valor" fill={color} radius={[0, 4, 4, 0]} />
             </BarChart>
           ) : (
-            <BarChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 60 }}>
+            <BarChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 80 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
               <XAxis
                 dataKey="nomeDisplay"
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
                 axisLine={{ stroke: "hsl(var(--border))" }}
-                height={60}
+                height={80}
                 angle={-45}
                 textAnchor="end"
+                interval={0}
               />
               <YAxis
                 tickFormatter={(value) => formatCompactCurrency(value)}
