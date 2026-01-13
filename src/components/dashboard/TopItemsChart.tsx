@@ -12,10 +12,10 @@ interface TopItemsChartProps {
 }
 
 export function TopItemsChart({ data, title, color = CHART_COLORS.primary, horizontal = true }: TopItemsChartProps) {
-  // Trunca nomes longos
+  // Trunca nomes longos - aumentado para mostrar mais caracteres
   const chartData = data.map((item) => ({
     ...item,
-    nomeDisplay: item.nome.length > 25 ? item.nome.substring(0, 22) + "..." : item.nome,
+    nomeDisplay: item.nome.length > 40 ? item.nome.substring(0, 37) + "..." : item.nome,
   }));
 
   return (
@@ -26,7 +26,7 @@ export function TopItemsChart({ data, title, color = CHART_COLORS.primary, horiz
       <CardContent>
         <ResponsiveContainer width="100%" height={400}>
           {horizontal ? (
-            <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 20, left: 100, bottom: 5 }}>
+            <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 20, left: 180, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal />
               <XAxis
                 type="number"
@@ -37,7 +37,7 @@ export function TopItemsChart({ data, title, color = CHART_COLORS.primary, horiz
               <YAxis
                 type="category"
                 dataKey="nomeDisplay"
-                width={95}
+                width={175}
                 tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
                 axisLine={{ stroke: "hsl(var(--border))" }}
               />
