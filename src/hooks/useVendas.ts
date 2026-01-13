@@ -20,31 +20,33 @@ async function fetchVendas(dataInicio: string, dataFim: string): Promise<VendaIt
   return result.data;
 }
 
-export function useVendas(ano: number) {
-  const dataInicio = `01/01/${ano}`;
-  const dataFim = `31/12/${ano}`;
+/**
+ * Hook para buscar dados de vendas de 2 anos (ano selecionado + ano anterior)
+ * - A query só é executada quando o ANO muda
+ * - Filtros de mês/equipe são aplicados localmente via useMemo
+ * - Cache de 20 minutos para performance
+ */
+export function useVendasDoisAnos(anoSelecionado: number) {
+  const anoAtual = anoSelecionado;
+  const anoAnterior = anoSelecionado - 1;
 
   return useQuery({
-    queryKey: ["vendas", ano],
-    queryFn: () => fetchVendas(dataInicio, dataFim),
-    staleTime: 1000 * 60 * 20, // 20 minutos de cache
-    retry: 2,
-  });
-}
-
-export function useVendasMultiplosAnos(anos: number[]) {
-  return useQuery({
-    queryKey: ["vendas-multiplos", anos],
+    queryKey: ["vendas-dois-anos", anoAtual],
     queryFn: async () => {
-      const results = await Promise.all(
-        anos.map(async (ano) => {
-          const data = await fetchVendas(`01/01/${ano}`, `31/12/${ano}`);
-          return { ano, data };
-        })
-      );
-      return results;
+      // Busca os 2 anos em paralelo
+      const [dadosAnoAtual, dadosAnoAnterior] = await Promise.all([
+        fetchVendas(`01/01/${anoAtual}`, `31/12/${anoAtual}`),
+        fetchVendas(`01/01/${anoAnterior}`, `31/12/${anoAnterior}`),
+      ]);
+
+      return {
+        anoAtual: { ano: anoAtual, data: dadosAnoAtual },
+        anoAnterior: { ano: anoAnterior, data: dadosAnoAnterior },
+      };
     },
-    staleTime: 1000 * 60 * 20,
+    staleTime: 1000 * 60 * 20, // 20 minutos - não refaz query
+    gcTime: 1000 * 60 * 30, // 30 minutos no garbage collector
     retry: 2,
+    refetchOnWindowFocus: false, // Não refaz ao focar na janela
   });
 }
