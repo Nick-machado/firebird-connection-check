@@ -56,8 +56,8 @@ export function calcularFaturamentoMensal(data: VendaItem[], ano: number): Fatur
 
   // Soma vendas
   vendas.forEach((item) => {
-    const mes = item.Mês;
-    if (mes >= 1 && mes <= 12) {
+    const mes = Number(item.Mês);
+    if (!isNaN(mes) && mes >= 1 && mes <= 12) {
       const atual = faturamentoPorMes.get(mes) || 0;
       faturamentoPorMes.set(mes, atual + (item["Total NF"] || 0));
     }
@@ -65,8 +65,8 @@ export function calcularFaturamentoMensal(data: VendaItem[], ano: number): Fatur
 
   // Subtrai devoluções
   devolucoes.forEach((item) => {
-    const mes = item.Mês;
-    if (mes >= 1 && mes <= 12) {
+    const mes = Number(item.Mês);
+    if (!isNaN(mes) && mes >= 1 && mes <= 12) {
       const atual = faturamentoPorMes.get(mes) || 0;
       faturamentoPorMes.set(mes, atual - Math.abs(item["Total NF"] || 0));
     }
