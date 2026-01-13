@@ -34,10 +34,10 @@ export function useVendasDoisAnos(anoSelecionado: number) {
   return useQuery({
     queryKey: ["vendas-dois-anos", anoAtual],
     queryFn: async () => {
-      // Busca os 2 anos em paralelo - usando formato ISO (YYYY-MM-DD)
+      // Busca os 2 anos em paralelo - formato DD/MM/YYYY
       const [dadosAnoAtual, dadosAnoAnterior] = await Promise.all([
-        fetchVendas(`${anoAtual}-01-01`, `${anoAtual}-12-31`),
-        fetchVendas(`${anoAnterior}-01-01`, `${anoAnterior}-12-31`),
+        fetchVendas(`01/01/${anoAtual}`, `31/12/${anoAtual}`),
+        fetchVendas(`01/01/${anoAnterior}`, `31/12/${anoAnterior}`),
       ]);
 
       return {
