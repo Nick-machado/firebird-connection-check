@@ -16,6 +16,7 @@ export default {
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
+        "input-background": "hsl(var(--input-background))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
@@ -30,6 +31,10 @@ export default {
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
+        },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
         },
         muted: {
           DEFAULT: "hsl(var(--muted))",
@@ -57,6 +62,9 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+      },
+      boxShadow: {
+        elegant: "var(--shadow-elegant)",
       },
       borderRadius: {
         lg: "var(--radius)",
