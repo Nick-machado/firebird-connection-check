@@ -14,13 +14,11 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 const menuItems = [
-  { path: "/", label: "Home", icon: Home },
-  { path: "/visao-geral", label: "Visão Geral", icon: BarChart3 },
+  { path: "/", label: "Visão Geral", icon: BarChart3 },
   { path: "/clientes", label: "Clientes", icon: Users, disabled: true },
   { path: "/regional", label: "Regional", icon: MapPin, disabled: true },
   { path: "/inteligencia", label: "Inteligência", icon: Brain, disabled: true },
 ];
-
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
