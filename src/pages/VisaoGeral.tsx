@@ -6,6 +6,7 @@ import { FaturamentoMensalChart } from "@/components/dashboard/FaturamentoMensal
 import { FaturamentoCanalChart } from "@/components/dashboard/FaturamentoCanalChart";
 import { TopItemsChart } from "@/components/dashboard/TopItemsChart";
 import { MargemCanalChart } from "@/components/dashboard/MargemCanalChart";
+import { TabelaConferencia } from "@/components/dashboard/TabelaConferencia";
 import { useVendasDoisAnos } from "@/hooks/useVendas";
 import {
   filtrarPorEquipe,
@@ -20,6 +21,7 @@ import {
   calcularFaturamentoPorRegiao,
 } from "@/lib/dataProcessing";
 import { CHART_COLORS } from "@/lib/constants";
+import { getMesNomeCompleto } from "@/lib/formatters";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, DollarSign, TrendingDown, Receipt, Package, Percent, Users, BarChart3 } from "lucide-react";
 
@@ -86,6 +88,7 @@ export default function VisaoGeral() {
       topClientes,
       margemPorCanal,
       faturamentoPorRegiao,
+      dadosMesFiltrados,
     };
   }, [vendasData, ano, mes, equipe]);
 
@@ -234,6 +237,12 @@ export default function VisaoGeral() {
                 />
               </TabsContent>
             </Tabs>
+
+            {/* Tabela de Conferência */}
+            <TabelaConferencia 
+              data={dadosProcessados.dadosMesFiltrados} 
+              mesNome={getMesNomeCompleto(mes)}
+            />
           </>
         )}
       </div>
