@@ -32,7 +32,7 @@ export function FaturamentoMensalChart({
   });
 
   return (
-    <Card className="shadow-elegant">
+    <Card className="shadow-elegant border-border/50 bg-card/80 backdrop-blur-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold">Comparativo Mensal de Faturamento</CardTitle>
       </CardHeader>
@@ -44,11 +44,13 @@ export function FaturamentoMensalChart({
               dataKey="mes" 
               tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
               axisLine={{ stroke: "hsl(var(--border))" }}
+              interval={0}
             />
             <YAxis
               tickFormatter={(value) => formatCompactCurrency(value)}
               tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
               axisLine={{ stroke: "hsl(var(--border))" }}
+              width={70}
             />
             <Tooltip
               formatter={(value: number) => formatCurrency(value)}
