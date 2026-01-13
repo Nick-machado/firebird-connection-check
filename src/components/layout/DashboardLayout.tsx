@@ -47,7 +47,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 animate-fade-in">
               <TrendingUp className="h-6 w-6 text-primary" />
               <span className="text-lg font-bold text-sidebar-foreground">HM Rubber</span>
             </div>
@@ -63,7 +63,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1">
-            {menuItems.map((item) => {
+            {menuItems.map((item, index) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
               
@@ -72,18 +72,20 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   key={item.path}
                   to={item.disabled ? "#" : item.path}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
+                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200",
                     isActive
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent/50",
-                    item.disabled && "opacity-50 cursor-not-allowed"
+                      ? "bg-primary/20 text-primary border-l-2 border-primary"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-primary",
+                    item.disabled && "opacity-50 cursor-not-allowed",
+                    "animate-slide-in-left opacity-0"
                   )}
+                  style={{ animationDelay: `${index * 0.1}s` }}
                   onClick={(e) => item.disabled && e.preventDefault()}
                 >
                   <Icon className="h-5 w-5" />
                   <span className="font-medium">{item.label}</span>
                   {item.disabled && (
-                    <span className="ml-auto text-xs bg-muted px-1.5 py-0.5 rounded">Em breve</span>
+                    <span className="ml-auto text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded">Em breve</span>
                   )}
                 </Link>
               );
