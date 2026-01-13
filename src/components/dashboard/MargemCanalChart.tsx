@@ -15,11 +15,12 @@ function estimateTextWidth(text: string, fontSize: number = 11): number {
 }
 
 export function MargemCanalChart({ data }: MargemCanalChartProps) {
-  const { chartData, yAxisWidth, leftMargin, chartHeight } = useMemo(() => {
+  const { chartData, yAxisWidth, chartHeight } = useMemo(() => {
     const slicedData = data.slice(0, 8);
     const names = slicedData.map(item => item.canal);
     const maxTextWidth = Math.max(...names.map(name => estimateTextWidth(name, 11)));
-    const calculatedWidth = Math.min(maxTextWidth + 20, 250);
+    // Limita a largura máxima para não ocupar espaço demais
+    const calculatedWidth = Math.min(Math.max(maxTextWidth + 15, 80), 180);
     const itemHeight = 38;
     const minHeight = 280;
     const calculatedHeight = Math.max(minHeight, slicedData.length * itemHeight + 40);
@@ -27,10 +28,9 @@ export function MargemCanalChart({ data }: MargemCanalChartProps) {
     return {
       chartData: slicedData.map((item) => ({
         ...item,
-        canalDisplay: item.canal, // Nome completo
+        canalDisplay: item.canal,
       })),
       yAxisWidth: calculatedWidth,
-      leftMargin: calculatedWidth + 10,
       chartHeight: calculatedHeight,
     };
   }, [data]);
@@ -88,7 +88,7 @@ export function MargemCanalChart({ data }: MargemCanalChartProps) {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={chartHeight}>
-          <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 20, left: leftMargin, bottom: 5 }}>
+          <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 5, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal />
             <XAxis
               type="number"

@@ -26,20 +26,20 @@ function calculateMaxLabelWidth(items: string[], fontSize: number = 11, maxWidth
 
 export function TopItemsChart({ data, title, color = CHART_COLORS.primary, horizontal = true }: TopItemsChartProps) {
   // Calcula dimensões dinâmicas baseadas nos dados
-  const { chartData, yAxisWidth, leftMargin, chartHeight } = useMemo(() => {
+  const { chartData, yAxisWidth, chartHeight } = useMemo(() => {
     const names = data.map(item => item.nome);
-    const maxLabelWidth = calculateMaxLabelWidth(names, 11, 350);
-    const itemHeight = 40; // altura por item
+    // Calcula largura baseada no texto mais longo, com limites razoáveis
+    const maxLabelWidth = calculateMaxLabelWidth(names, 11, 220);
+    const itemHeight = 40;
     const minHeight = 300;
     const calculatedHeight = Math.max(minHeight, data.length * itemHeight + 50);
     
     return {
       chartData: data.map((item) => ({
         ...item,
-        nomeDisplay: item.nome, // Mostra nome completo
+        nomeDisplay: item.nome,
       })),
       yAxisWidth: maxLabelWidth,
-      leftMargin: maxLabelWidth + 10,
       chartHeight: calculatedHeight,
     };
   }, [data]);
@@ -98,7 +98,7 @@ export function TopItemsChart({ data, title, color = CHART_COLORS.primary, horiz
       <CardContent>
         <ResponsiveContainer width="100%" height={chartHeight}>
           {horizontal ? (
-            <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 20, left: leftMargin, bottom: 5 }}>
+            <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 5, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal />
               <XAxis
                 type="number"
