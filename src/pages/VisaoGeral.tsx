@@ -6,7 +6,7 @@ import { FaturamentoMensalChart } from "@/components/dashboard/FaturamentoMensal
 import { FaturamentoCanalChart } from "@/components/dashboard/FaturamentoCanalChart";
 import { TopItemsChart } from "@/components/dashboard/TopItemsChart";
 import { MargemCanalChart } from "@/components/dashboard/MargemCanalChart";
-import { useVendasMultiplosAnos } from "@/hooks/useVendas";
+import { useVendasDoisAnos } from "@/hooks/useVendas";
 import {
   filtrarPorEquipe,
   filtrarPorMes,
@@ -31,15 +31,15 @@ export default function VisaoGeral() {
   const [mes, setMes] = useState(mesAtual);
   const [equipe, setEquipe] = useState("TODAS");
 
-  // Busca dados do ano atual e anterior
-  const { data: vendasData, isLoading, error } = useVendasMultiplosAnos([ano, ano - 1]);
+  // Busca dados do ano atual e anterior (query só muda quando ANO muda)
+  const { data: vendasData, isLoading, error } = useVendasDoisAnos(ano);
 
-  // Processa os dados
+  // Processa os dados (filtros de mês/equipe aplicados localmente)
   const dadosProcessados = useMemo(() => {
     if (!vendasData) return null;
 
-    const dadosAnoAtual = vendasData.find((v) => v.ano === ano)?.data || [];
-    const dadosAnoAnterior = vendasData.find((v) => v.ano === ano - 1)?.data || [];
+    const dadosAnoAtual = vendasData.anoAtual.data;
+    const dadosAnoAnterior = vendasData.anoAnterior.data;
 
     // Aplica filtro de equipe
     const dadosAnoAtualFiltrados = filtrarPorEquipe(dadosAnoAtual, equipe);
