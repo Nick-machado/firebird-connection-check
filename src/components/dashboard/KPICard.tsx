@@ -49,11 +49,14 @@ export function KPICard({
   };
 
   return (
-    <Card className={cn("shadow-elegant hover:shadow-lg transition-shadow", className)}>
+    <Card className={cn(
+      "shadow-elegant transition-all duration-300 hover:shadow-lg hover-glow border-border/50 bg-card/80 backdrop-blur-sm",
+      className
+    )}>
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-muted-foreground">{title}</span>
-          {icon && <span className="text-muted-foreground">{icon}</span>}
+          {icon && <span className="text-primary/70">{icon}</span>}
         </div>
         <div className="mt-2">
           <span className="text-2xl font-bold text-foreground">{formattedValue}</span>

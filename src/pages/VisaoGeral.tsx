@@ -119,121 +119,145 @@ export default function VisaoGeral() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
+        <div className="animate-fade-in-up">
           <h1 className="text-2xl font-bold text-foreground">Visão Geral de Vendas</h1>
           <p className="text-muted-foreground">Análise completa de faturamento, margem e performance</p>
         </div>
 
         {/* Filtros */}
-        <FiltrosVendas
-          ano={ano}
-          mes={mes}
-          equipe={equipe}
-          onAnoChange={setAno}
-          onMesChange={setMes}
-          onEquipeChange={setEquipe}
-          mesAtualMax={ano === anoAtual ? mesAtual : 12}
-        />
+        <div className="animate-fade-in-up stagger-1 opacity-0">
+          <FiltrosVendas
+            ano={ano}
+            mes={mes}
+            equipe={equipe}
+            onAnoChange={setAno}
+            onMesChange={setMes}
+            onEquipeChange={setEquipe}
+            mesAtualMax={ano === anoAtual ? mesAtual : 12}
+          />
+        </div>
 
         {/* KPIs */}
         {dadosProcessados && (
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              <KPICard
-                title="Faturamento"
-                value={dadosProcessados.kpisMes.faturamentoLiquido}
-                format="compact"
-                icon={<DollarSign className="h-4 w-4" />}
-                trend={dadosProcessados.variacaoFaturamento}
-                trendLabel="vs ano anterior"
-              />
-              <KPICard
-                title="Devoluções"
-                value={dadosProcessados.kpisMes.totalDevolucoes}
-                format="compact"
-                icon={<TrendingDown className="h-4 w-4" />}
-              />
-              <KPICard
-                title="Notas Emitidas"
-                value={dadosProcessados.kpisMes.totalNotas}
-                format="number"
-                icon={<Receipt className="h-4 w-4" />}
-              />
-              <KPICard
-                title="CMV"
-                value={dadosProcessados.kpisMes.totalCMV}
-                format="compact"
-                icon={<Package className="h-4 w-4" />}
-              />
-              <KPICard
-                title="Margem"
-                value={dadosProcessados.kpisMes.totalMargem}
-                format="compact"
-                icon={<BarChart3 className="h-4 w-4" />}
-                trend={dadosProcessados.variacaoMargem}
-                trendLabel="vs ano anterior"
-              />
-              <KPICard
-                title="Margem %"
-                value={dadosProcessados.kpisMes.margemPercentual}
-                format="percent"
-                icon={<Percent className="h-4 w-4" />}
-              />
+              <div className="animate-fade-in-up stagger-1 opacity-0">
+                <KPICard
+                  title="Faturamento"
+                  value={dadosProcessados.kpisMes.faturamentoLiquido}
+                  format="compact"
+                  icon={<DollarSign className="h-4 w-4" />}
+                  trend={dadosProcessados.variacaoFaturamento}
+                  trendLabel="vs ano anterior"
+                />
+              </div>
+              <div className="animate-fade-in-up stagger-2 opacity-0">
+                <KPICard
+                  title="Devoluções"
+                  value={dadosProcessados.kpisMes.totalDevolucoes}
+                  format="compact"
+                  icon={<TrendingDown className="h-4 w-4" />}
+                />
+              </div>
+              <div className="animate-fade-in-up stagger-3 opacity-0">
+                <KPICard
+                  title="Notas Emitidas"
+                  value={dadosProcessados.kpisMes.totalNotas}
+                  format="number"
+                  icon={<Receipt className="h-4 w-4" />}
+                />
+              </div>
+              <div className="animate-fade-in-up stagger-4 opacity-0">
+                <KPICard
+                  title="CMV"
+                  value={dadosProcessados.kpisMes.totalCMV}
+                  format="compact"
+                  icon={<Package className="h-4 w-4" />}
+                />
+              </div>
+              <div className="animate-fade-in-up stagger-5 opacity-0">
+                <KPICard
+                  title="Margem"
+                  value={dadosProcessados.kpisMes.totalMargem}
+                  format="compact"
+                  icon={<BarChart3 className="h-4 w-4" />}
+                  trend={dadosProcessados.variacaoMargem}
+                  trendLabel="vs ano anterior"
+                />
+              </div>
+              <div className="animate-fade-in-up stagger-6 opacity-0">
+                <KPICard
+                  title="Margem %"
+                  value={dadosProcessados.kpisMes.margemPercentual}
+                  format="percent"
+                  icon={<Percent className="h-4 w-4" />}
+                />
+              </div>
             </div>
 
             {/* Gráficos principais */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <FaturamentoMensalChart
-                dataAnoAtual={dadosProcessados.faturamentoMensalAtual}
-                dataAnoAnterior={dadosProcessados.faturamentoMensalAnterior}
-                anoAtual={ano}
-                anoAnterior={ano - 1}
-              />
-              <FaturamentoCanalChart data={dadosProcessados.faturamentoPorCanal} />
+              <div className="animate-scale-in stagger-2 opacity-0">
+                <FaturamentoMensalChart
+                  dataAnoAtual={dadosProcessados.faturamentoMensalAtual}
+                  dataAnoAnterior={dadosProcessados.faturamentoMensalAnterior}
+                  anoAtual={ano}
+                  anoAnterior={ano - 1}
+                />
+              </div>
+              <div className="animate-scale-in stagger-3 opacity-0">
+                <FaturamentoCanalChart data={dadosProcessados.faturamentoPorCanal} />
+              </div>
             </div>
 
             {/* Margem por canal */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <MargemCanalChart data={dadosProcessados.margemPorCanal} />
-              <TopItemsChart
-                data={dadosProcessados.faturamentoPorRegiao}
-                title="Faturamento por Região"
-                color={CHART_COLORS.tertiary}
-              />
+              <div className="animate-scale-in stagger-4 opacity-0">
+                <MargemCanalChart data={dadosProcessados.margemPorCanal} />
+              </div>
+              <div className="animate-scale-in stagger-5 opacity-0">
+                <TopItemsChart
+                  data={dadosProcessados.faturamentoPorRegiao}
+                  title="Faturamento por Região"
+                  color={CHART_COLORS.tertiary}
+                />
+              </div>
             </div>
 
             {/* Análises detalhadas em abas */}
-            <Tabs defaultValue="produtos" className="space-y-4">
-              <TabsList>
-                <TabsTrigger value="produtos">Top Produtos</TabsTrigger>
-                <TabsTrigger value="vendedores">Top Vendedores</TabsTrigger>
-                <TabsTrigger value="clientes">Top Clientes</TabsTrigger>
-              </TabsList>
+            <div className="animate-fade-in-up stagger-6 opacity-0">
+              <Tabs defaultValue="produtos" className="space-y-4">
+                <TabsList className="bg-muted/50 backdrop-blur-sm">
+                  <TabsTrigger value="produtos">Top Produtos</TabsTrigger>
+                  <TabsTrigger value="vendedores">Top Vendedores</TabsTrigger>
+                  <TabsTrigger value="clientes">Top Clientes</TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="produtos">
-                <TopItemsChart
-                  data={dadosProcessados.topProdutos}
-                  title="Top 10 Produtos por Faturamento"
-                  color={CHART_COLORS.primary}
-                />
-              </TabsContent>
+                <TabsContent value="produtos" className="animate-fade-in">
+                  <TopItemsChart
+                    data={dadosProcessados.topProdutos}
+                    title="Top 10 Produtos por Faturamento"
+                    color={CHART_COLORS.primary}
+                  />
+                </TabsContent>
 
-              <TabsContent value="vendedores">
-                <TopItemsChart
-                  data={dadosProcessados.topVendedores}
-                  title="Top 10 Vendedores por Faturamento"
-                  color={CHART_COLORS.secondary}
-                />
-              </TabsContent>
+                <TabsContent value="vendedores" className="animate-fade-in">
+                  <TopItemsChart
+                    data={dadosProcessados.topVendedores}
+                    title="Top 10 Vendedores por Faturamento"
+                    color={CHART_COLORS.secondary}
+                  />
+                </TabsContent>
 
-              <TabsContent value="clientes">
-                <TopItemsChart
-                  data={dadosProcessados.topClientes}
-                  title="Top 10 Clientes por Faturamento"
-                  color={CHART_COLORS.tertiary}
-                />
-              </TabsContent>
-            </Tabs>
+                <TabsContent value="clientes" className="animate-fade-in">
+                  <TopItemsChart
+                    data={dadosProcessados.topClientes}
+                    title="Top 10 Clientes por Faturamento"
+                    color={CHART_COLORS.tertiary}
+                  />
+                </TabsContent>
+              </Tabs>
+            </div>
           </>
         )}
       </div>
