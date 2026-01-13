@@ -2,23 +2,57 @@ import { useQuery } from "@tanstack/react-query";
 import { API_URL } from "@/lib/constants";
 import type { VendaItem } from "@/types/venda";
 
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
 interface VendasResponse {
   success: boolean;
   data: VendaItem[];
+  pagination?: PaginationInfo;
   error?: string;
 }
 
+/**
+ * Busca TODAS as páginas de vendas para o período especificado
+ */
 async function fetchVendas(dataInicio: string, dataFim: string): Promise<VendaItem[]> {
-  const params = new URLSearchParams({ dataInicio, dataFim });
-  const url = `${API_URL}/api/vendas?${params.toString()}`;
-  const response = await fetch(url);
-  const result: VendasResponse = await response.json();
+  const allData: VendaItem[] = [];
+  let currentPage = 1;
+  let hasNextPage = true;
 
-  if (!result.success) {
-    throw new Error(result.error || "Erro ao buscar dados");
+  while (hasNextPage) {
+    const params = new URLSearchParams({ 
+      dataInicio, 
+      dataFim, 
+      page: currentPage.toString(),
+      limit: "500" // Pede mais registros por página para menos requests
+    });
+    
+    const url = `${API_URL}/api/vendas?${params.toString()}`;
+    const response = await fetch(url);
+    const result: VendasResponse = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.error || "Erro ao buscar dados");
+    }
+
+    allData.push(...result.data);
+    
+    // Verifica se há próxima página
+    hasNextPage = result.pagination?.hasNextPage ?? false;
+    currentPage++;
+    
+    // Safety: evita loop infinito (máx 500 páginas)
+    if (currentPage > 500) break;
   }
 
-  return result.data;
+  return allData;
 }
 
 /**
