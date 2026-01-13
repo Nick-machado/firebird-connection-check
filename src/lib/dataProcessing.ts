@@ -9,7 +9,7 @@ export function filtrarPorEquipe(data: VendaItem[], equipe: string): VendaItem[]
 
 // Filtra vendas por mês
 export function filtrarPorMes(data: VendaItem[], mes: number): VendaItem[] {
-  return data.filter((item) => item.Mês === mes);
+  return data.filter((item) => Number(item.Mês) === mes);
 }
 
 // Separa vendas de devoluções

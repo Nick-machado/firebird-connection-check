@@ -9,7 +9,8 @@ interface VendasResponse {
 }
 
 async function fetchVendas(dataInicio: string, dataFim: string): Promise<VendaItem[]> {
-  const url = `${API_URL}/api/vendas?dataInicio=${encodeURIComponent(dataInicio)}&dataFim=${encodeURIComponent(dataFim)}`;
+  const params = new URLSearchParams({ dataInicio, dataFim });
+  const url = `${API_URL}/api/vendas?${params.toString()}`;
   const response = await fetch(url);
   const result: VendasResponse = await response.json();
 
@@ -33,10 +34,10 @@ export function useVendasDoisAnos(anoSelecionado: number) {
   return useQuery({
     queryKey: ["vendas-dois-anos", anoAtual],
     queryFn: async () => {
-      // Busca os 2 anos em paralelo
+      // Busca os 2 anos em paralelo - usando formato ISO (YYYY-MM-DD)
       const [dadosAnoAtual, dadosAnoAnterior] = await Promise.all([
-        fetchVendas(`01/01/${anoAtual}`, `31/12/${anoAtual}`),
-        fetchVendas(`01/01/${anoAnterior}`, `31/12/${anoAnterior}`),
+        fetchVendas(`${anoAtual}-01-01`, `${anoAtual}-12-31`),
+        fetchVendas(`${anoAnterior}-01-01`, `${anoAnterior}-12-31`),
       ]);
 
       return {
