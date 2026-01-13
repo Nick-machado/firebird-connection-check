@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Database, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Database, CheckCircle2, XCircle, Loader2, FileSpreadsheet } from "lucide-react";
 
 type ConnectionStatus = "idle" | "loading" | "success" | "error";
 
@@ -100,10 +101,17 @@ const Index = () => {
             </div>
           )}
 
-          <div className="pt-4 border-t border-border">
+          <div className="pt-4 border-t border-border space-y-4">
             <p className="text-xs text-muted-foreground text-center">
               Conectando a: <span className="font-mono">mk.rpsolution.com.br:30509</span>
             </p>
+            
+            <Link to="/vendas">
+              <Button variant="outline" className="w-full">
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                Relatório de Vendas
+              </Button>
+            </Link>
           </div>
         </CardContent>
       </Card>
