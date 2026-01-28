@@ -57,7 +57,8 @@ export interface KPIData {
 export interface FaturamentoMensal {
   mes: number;
   mesNome: string;
-  valor: number;
+  valorBruto: number;
+  valorLiquido: number;
   ano: number;
 }
 
