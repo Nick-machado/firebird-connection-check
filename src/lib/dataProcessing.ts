@@ -48,37 +48,41 @@ export function calcularKPIs(data: VendaItem[]): KPIData {
   };
 }
 
-// Calcula faturamento mensal
+// Calcula faturamento mensal (bruto e líquido)
 export function calcularFaturamentoMensal(data: VendaItem[], ano: number): FaturamentoMensal[] {
   const { vendas, devolucoes } = separarVendasDevolucoes(data);
 
-  const faturamentoPorMes = new Map<number, number>();
+  const faturamentoBrutoPorMes = new Map<number, number>();
+  const devolucoesPorMes = new Map<number, number>();
 
-  // Soma vendas
+  // Soma vendas (bruto)
   vendas.forEach((item) => {
     const mes = Number(item.Mês);
     if (!isNaN(mes) && mes >= 1 && mes <= 12) {
-      const atual = faturamentoPorMes.get(mes) || 0;
-      faturamentoPorMes.set(mes, atual + (item["Total NF"] || 0));
+      const atual = faturamentoBrutoPorMes.get(mes) || 0;
+      faturamentoBrutoPorMes.set(mes, atual + (item["Total NF"] || 0));
     }
   });
 
-  // Subtrai devoluções
+  // Soma devoluções
   devolucoes.forEach((item) => {
     const mes = Number(item.Mês);
     if (!isNaN(mes) && mes >= 1 && mes <= 12) {
-      const atual = faturamentoPorMes.get(mes) || 0;
-      faturamentoPorMes.set(mes, atual - Math.abs(item["Total NF"] || 0));
+      const atual = devolucoesPorMes.get(mes) || 0;
+      devolucoesPorMes.set(mes, atual + Math.abs(item["Total NF"] || 0));
     }
   });
 
   // Converte para array ordenado
   const resultado: FaturamentoMensal[] = [];
   for (let mes = 1; mes <= 12; mes++) {
+    const bruto = faturamentoBrutoPorMes.get(mes) || 0;
+    const devolucao = devolucoesPorMes.get(mes) || 0;
     resultado.push({
       mes,
       mesNome: getMesNome(mes),
-      valor: faturamentoPorMes.get(mes) || 0,
+      valorBruto: bruto,
+      valorLiquido: bruto - devolucao,
       ano,
     });
   }

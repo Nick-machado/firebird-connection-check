@@ -170,10 +170,18 @@ export default function VisaoGeral() {
         {/* KPIs */}
         {dadosProcessados && (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
               <div className="animate-fade-in-up stagger-1 opacity-0">
                 <KPICard
-                  title="Faturamento"
+                  title="Faturamento Bruto"
+                  value={dadosProcessados.kpisMes.totalFaturado}
+                  format="compact"
+                  icon={<DollarSign className="h-4 w-4" />}
+                />
+              </div>
+              <div className="animate-fade-in-up stagger-2 opacity-0">
+                <KPICard
+                  title="Fat. Líquido"
                   value={dadosProcessados.kpisMes.faturamentoLiquido}
                   format="compact"
                   icon={<DollarSign className="h-4 w-4" />}
@@ -181,7 +189,7 @@ export default function VisaoGeral() {
                   trendLabel="vs ano anterior"
                 />
               </div>
-              <div className="animate-fade-in-up stagger-2 opacity-0">
+              <div className="animate-fade-in-up stagger-3 opacity-0">
                 <KPICard
                   title="Devoluções"
                   value={dadosProcessados.kpisMes.totalDevolucoes}
@@ -189,7 +197,7 @@ export default function VisaoGeral() {
                   icon={<TrendingDown className="h-4 w-4" />}
                 />
               </div>
-              <div className="animate-fade-in-up stagger-3 opacity-0">
+              <div className="animate-fade-in-up stagger-4 opacity-0">
                 <KPICard
                   title="Notas Emitidas"
                   value={dadosProcessados.kpisMes.totalNotas}
@@ -197,7 +205,7 @@ export default function VisaoGeral() {
                   icon={<Receipt className="h-4 w-4" />}
                 />
               </div>
-              <div className="animate-fade-in-up stagger-4 opacity-0">
+              <div className="animate-fade-in-up stagger-5 opacity-0">
                 <KPICard
                   title="CMV"
                   value={dadosProcessados.kpisMes.totalCMV}
@@ -205,7 +213,7 @@ export default function VisaoGeral() {
                   icon={<Package className="h-4 w-4" />}
                 />
               </div>
-              <div className="animate-fade-in-up stagger-5 opacity-0">
+              <div className="animate-fade-in-up stagger-6 opacity-0">
                 <KPICard
                   title="Margem"
                   value={dadosProcessados.kpisMes.totalMargem}
@@ -215,7 +223,7 @@ export default function VisaoGeral() {
                   trendLabel="vs ano anterior"
                 />
               </div>
-              <div className="animate-fade-in-up stagger-6 opacity-0">
+              <div className="animate-fade-in-up stagger-7 opacity-0">
                 <KPICard
                   title="Margem %"
                   value={dadosProcessados.kpisMes.margemPercentual}

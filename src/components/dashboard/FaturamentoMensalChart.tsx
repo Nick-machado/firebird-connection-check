@@ -17,16 +17,20 @@ export function FaturamentoMensalChart({
   anoAtual,
   anoAnterior,
 }: FaturamentoMensalChartProps) {
-  // Combina os dados para o gráfico
+  // Combina os dados para o gráfico - usando valor bruto para comparação
   const chartData = dataAnoAtual.map((item) => {
     const anoAnteriorItem = (dataAnoAnterior || []).find(
       (a) => Number(a.mes) === Number(item.mes)
     );
     return {
       mes: item.mesNome,
-      [String(anoAtual)]: item.valor,
+      [`${anoAtual} Bruto`]: item.valorBruto,
+      [`${anoAtual} Líquido`]: item.valorLiquido,
       ...(anoAnterior && anoAnteriorItem 
-        ? { [String(anoAnterior)]: anoAnteriorItem.valor } 
+        ? { 
+            [`${anoAnterior} Bruto`]: anoAnteriorItem.valorBruto,
+            [`${anoAnterior} Líquido`]: anoAnteriorItem.valorLiquido,
+          } 
         : {}),
     };
   });
@@ -62,24 +66,47 @@ export function FaturamentoMensalChart({
               labelStyle={{ color: "hsl(var(--foreground))" }}
             />
             <Legend />
+            {/* Ano Atual - Bruto */}
             <Line
               type="monotone"
-              dataKey={String(anoAtual)}
-              name={String(anoAtual)}
+              dataKey={`${anoAtual} Bruto`}
+              name={`${anoAtual} Bruto`}
               stroke={CHART_COLORS.primary}
               strokeWidth={2}
               dot={{ fill: CHART_COLORS.primary, strokeWidth: 2 }}
               activeDot={{ r: 6 }}
             />
+            {/* Ano Atual - Líquido */}
+            <Line
+              type="monotone"
+              dataKey={`${anoAtual} Líquido`}
+              name={`${anoAtual} Líquido`}
+              stroke={CHART_COLORS.secondary}
+              strokeWidth={2}
+              dot={{ fill: CHART_COLORS.secondary, strokeWidth: 2 }}
+            />
+            {/* Ano Anterior - Bruto */}
             {anoAnterior && (
               <Line
                 type="monotone"
-                dataKey={String(anoAnterior)}
-                name={String(anoAnterior)}
+                dataKey={`${anoAnterior} Bruto`}
+                name={`${anoAnterior} Bruto`}
                 stroke={CHART_COLORS.muted}
                 strokeWidth={2}
                 strokeDasharray="5 5"
                 dot={{ fill: CHART_COLORS.muted, strokeWidth: 2 }}
+              />
+            )}
+            {/* Ano Anterior - Líquido */}
+            {anoAnterior && (
+              <Line
+                type="monotone"
+                dataKey={`${anoAnterior} Líquido`}
+                name={`${anoAnterior} Líquido`}
+                stroke={CHART_COLORS.tertiary}
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                dot={{ fill: CHART_COLORS.tertiary, strokeWidth: 2 }}
               />
             )}
           </LineChart>
