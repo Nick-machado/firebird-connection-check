@@ -12,10 +12,10 @@ export function filtrarPorMes(data: VendaItem[], mes: number): VendaItem[] {
   return data.filter((item) => Number(item.Mês) === mes);
 }
 
-// Separa vendas de devoluções
+// Separa vendas de devoluções usando o campo "Flag Tipo"
 export function separarVendasDevolucoes(data: VendaItem[]) {
-  const vendas = data.filter((item) => !item["Tipo Movimento"]?.toLowerCase().includes("devolução"));
-  const devolucoes = data.filter((item) => item["Tipo Movimento"]?.toLowerCase().includes("devolução"));
+  const vendas = data.filter((item) => item["Flag Tipo"] === "V");
+  const devolucoes = data.filter((item) => item["Flag Tipo"] === "D");
   return { vendas, devolucoes };
 }
 

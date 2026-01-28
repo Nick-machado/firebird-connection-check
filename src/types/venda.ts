@@ -40,6 +40,7 @@ export interface VendaItem {
   Estoque: string;
   Marca: string;
   Id: number;
+  "Flag Tipo": "V" | "D";
 }
 
 export interface KPIData {

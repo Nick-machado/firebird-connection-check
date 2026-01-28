@@ -7,6 +7,7 @@ function formatarDados(item: VendaItem) {
     Empresa: item.Empresa,
     Nota: item.Nota,
     'Tipo Movimento': item['Tipo Movimento'],
+    'Flag Tipo': item['Flag Tipo'],
     'Cód. Cli': item['Cód. Cli'],
     Cliente: item.Cliente,
     'Cód. Prod': item['Cód. Prod'],
@@ -104,9 +105,9 @@ export function exportarVendasExcel(
     return;
   }
 
-  // Separa vendas de devoluções
-  const vendas = dados.filter((item) => !item["Tipo Movimento"]?.toLowerCase().includes("devolução"));
-  const devolucoes = dados.filter((item) => item["Tipo Movimento"]?.toLowerCase().includes("devolução"));
+  // Separa vendas de devoluções usando "Flag Tipo"
+  const vendas = dados.filter((item) => item["Flag Tipo"] === "V");
+  const devolucoes = dados.filter((item) => item["Flag Tipo"] === "D");
 
   // Formata dados das vendas
   const vendasFormatadas = vendas.map(formatarDados);
@@ -123,7 +124,9 @@ export function exportarVendasExcel(
 
   // Sheet de Vendas
   const worksheetVendas = XLSX.utils.json_to_sheet(vendasComTotal);
-  const colWidths = vendasFormatadas.length > 0 ? Object.keys(vendasFormatadas[0]).map(() => 15) : [];
+  const colWidths = vendasFormatadas.length > 0 
+    ? Object.keys(vendasFormatadas[0]).map(() => ({ wch: 15 })) 
+    : [];
   worksheetVendas['!cols'] = colWidths;
   XLSX.utils.book_append_sheet(workbook, worksheetVendas, 'Vendas');
 
