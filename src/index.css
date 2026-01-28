@@ -132,3 +132,59 @@
     transform: scale(1);
   }
 }
+
+/* Sincronização de scroll horizontal na tabela */
+@layer utilities {
+  .table-scroll-sync {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .horizontal-scrollbar-track {
+    /* Sincroniza o scroll horizontal com o container acima */
+  }
+
+  .scrollable-tbody::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+  }
+
+  .scrollable-tbody::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+  }
+
+  .scrollable-tbody::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground));
+    border-radius: 4px;
+  }
+
+  .scrollable-tbody::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--foreground) / 0.5);
+  }
+
+  .horizontal-scrollbar-track::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .horizontal-scrollbar-track::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+  }
+
+  .horizontal-scrollbar-track::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground));
+    border-radius: 4px;
+  }
+
+  .horizontal-scrollbar-track::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--foreground) / 0.5);
+  }
+
+  /* Linha de totais fixa */
+  .totals-row {
+    position: sticky;
+    bottom: 0;
+    background: hsl(var(--muted) / 0.6);
+    font-weight: 600;
+    z-index: 10;
+  }
+}

@@ -1,5 +1,6 @@
 export interface VendaItem {
   Data: string;
+  Empresa: number;
   Nota: string;
   "Tipo Movimento": string;
   "Cód. Cli": number;

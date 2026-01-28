@@ -19,9 +19,11 @@ import {
   calcularMargemPorCanal,
   calcularFaturamentoPorRegiao,
 } from "@/lib/dataProcessing";
+import { exportarVendasExcel } from "@/lib/exportToExcel";
 import { CHART_COLORS } from "@/lib/constants";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, DollarSign, TrendingDown, Receipt, Package, Percent, Users, BarChart3 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, DollarSign, TrendingDown, Receipt, Package, Percent, Users, BarChart3, FileDown } from "lucide-react";
 
 export default function VisaoGeral() {
   const anoAtual = new Date().getFullYear();
@@ -115,13 +117,41 @@ export default function VisaoGeral() {
     );
   }
 
+  const handleExportExcel = () => {
+    if (!vendasData) {
+      alert('Nenhum dado disponível para exportar');
+      return;
+    }
+
+    // Filtra os dados de acordo com os filtros aplicados
+    let dadosFiltrados = vendasData.anoAtual.data;
+    dadosFiltrados = filtrarPorEquipe(dadosFiltrados, equipe);
+    dadosFiltrados = filtrarPorMes(dadosFiltrados, mes);
+
+    // Cria o nome do arquivo com os filtros
+    const mesNome = mes < 10 ? `0${mes}` : mes;
+    const nomeArquivo = `vendas_${ano}_${mesNome}_${equipe}.xlsx`;
+
+    exportarVendasExcel(dadosFiltrados, nomeArquivo);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="animate-fade-in-up">
-          <h1 className="text-2xl font-bold text-foreground">Visão Geral de Vendas</h1>
-          <p className="text-muted-foreground">Análise completa de faturamento, margem e performance</p>
+        <div className="animate-fade-in-up flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Visão Geral de Vendas</h1>
+            <p className="text-muted-foreground">Análise completa de faturamento, margem e performance</p>
+          </div>
+          <Button
+            onClick={handleExportExcel}
+            className="gap-2"
+            variant="outline"
+          >
+            <FileDown className="h-4 w-4" />
+            Exportar Excel
+          </Button>
         </div>
 
         {/* Filtros */}
