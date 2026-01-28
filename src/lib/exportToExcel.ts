@@ -106,8 +106,8 @@ export function exportarVendasExcel(
   }
 
   // Separa vendas de devoluções usando "Flag Tipo"
-  const vendas = dados.filter((item) => item["Flag Tipo"] === "V");
-  const devolucoes = dados.filter((item) => item["Flag Tipo"] === "D");
+  const vendas = dados.filter((item) => item["Flag Tipo"]?.trim() === "V");
+  const devolucoes = dados.filter((item) => item["Flag Tipo"]?.trim() === "D");
 
   // Formata dados das vendas
   const vendasFormatadas = vendas.map(formatarDados);

@@ -14,8 +14,8 @@ export function filtrarPorMes(data: VendaItem[], mes: number): VendaItem[] {
 
 // Separa vendas de devoluções usando o campo "Flag Tipo"
 export function separarVendasDevolucoes(data: VendaItem[]) {
-  const vendas = data.filter((item) => item["Flag Tipo"] === "V");
-  const devolucoes = data.filter((item) => item["Flag Tipo"] === "D");
+  const vendas = data.filter((item) => item["Flag Tipo"]?.trim() === "V");
+  const devolucoes = data.filter((item) => item["Flag Tipo"]?.trim() === "D");
   return { vendas, devolucoes };
 }
 
