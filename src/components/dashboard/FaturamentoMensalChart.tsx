@@ -17,20 +17,16 @@ export function FaturamentoMensalChart({
   anoAtual,
   anoAnterior,
 }: FaturamentoMensalChartProps) {
-  // Combina os dados para o gráfico - usando valor bruto para comparação
+  // Combina os dados para o gráfico - apenas valores líquidos
   const chartData = dataAnoAtual.map((item) => {
     const anoAnteriorItem = (dataAnoAnterior || []).find(
       (a) => Number(a.mes) === Number(item.mes)
     );
     return {
       mes: item.mesNome,
-      [`${anoAtual} Bruto`]: item.valorBruto,
-      [`${anoAtual} Líquido`]: item.valorLiquido,
+      [`${anoAtual}`]: item.valorLiquido,
       ...(anoAnterior && anoAnteriorItem 
-        ? { 
-            [`${anoAnterior} Bruto`]: anoAnteriorItem.valorBruto,
-            [`${anoAnterior} Líquido`]: anoAnteriorItem.valorLiquido,
-          } 
+        ? { [`${anoAnterior}`]: anoAnteriorItem.valorLiquido } 
         : {}),
     };
   });
@@ -38,7 +34,7 @@ export function FaturamentoMensalChart({
   return (
     <Card className="shadow-elegant border-border/50 bg-card/80 backdrop-blur-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold">Comparativo Mensal de Faturamento</CardTitle>
+        <CardTitle className="text-base font-semibold">Comparativo Mensal de Faturamento Líquido</CardTitle>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
@@ -66,47 +62,26 @@ export function FaturamentoMensalChart({
               labelStyle={{ color: "hsl(var(--foreground))" }}
             />
             <Legend />
-            {/* Ano Atual - Bruto */}
+            {/* Ano Atual */}
             <Line
               type="monotone"
-              dataKey={`${anoAtual} Bruto`}
-              name={`${anoAtual} Bruto`}
+              dataKey={`${anoAtual}`}
+              name={`${anoAtual}`}
               stroke={CHART_COLORS.primary}
               strokeWidth={2}
               dot={{ fill: CHART_COLORS.primary, strokeWidth: 2 }}
               activeDot={{ r: 6 }}
             />
-            {/* Ano Atual - Líquido */}
-            <Line
-              type="monotone"
-              dataKey={`${anoAtual} Líquido`}
-              name={`${anoAtual} Líquido`}
-              stroke={CHART_COLORS.secondary}
-              strokeWidth={2}
-              dot={{ fill: CHART_COLORS.secondary, strokeWidth: 2 }}
-            />
-            {/* Ano Anterior - Bruto */}
+            {/* Ano Anterior */}
             {anoAnterior && (
               <Line
                 type="monotone"
-                dataKey={`${anoAnterior} Bruto`}
-                name={`${anoAnterior} Bruto`}
+                dataKey={`${anoAnterior}`}
+                name={`${anoAnterior}`}
                 stroke={CHART_COLORS.muted}
                 strokeWidth={2}
                 strokeDasharray="5 5"
                 dot={{ fill: CHART_COLORS.muted, strokeWidth: 2 }}
-              />
-            )}
-            {/* Ano Anterior - Líquido */}
-            {anoAnterior && (
-              <Line
-                type="monotone"
-                dataKey={`${anoAnterior} Líquido`}
-                name={`${anoAnterior} Líquido`}
-                stroke={CHART_COLORS.tertiary}
-                strokeWidth={2}
-                strokeDasharray="5 5"
-                dot={{ fill: CHART_COLORS.tertiary, strokeWidth: 2 }}
               />
             )}
           </LineChart>
