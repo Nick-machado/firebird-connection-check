@@ -1,86 +1,95 @@
 
 
-# Plano: Atualizar Filtro para usar "Flag Tipo"
+# Plano: Simplificar Gráfico e Adicionar Tooltip com Valor Exato
 
 ## Resumo
 
-Vou atualizar o sistema para usar o novo campo `"Flag Tipo"` retornado pela API, onde:
-- **V** = Vendas
-- **D** = Devoluções
-
-Isso simplifica a lógica de separação, que atualmente depende de verificar se o texto "devolução" está presente no campo `"Tipo Movimento"`.
+Vou fazer duas melhorias:
+1. **Gráfico**: Mostrar apenas valores líquidos (remover linhas de Bruto)
+2. **KPI Cards**: Adicionar tooltip que mostra o valor exato sem arredondamento ao passar o mouse
 
 ---
 
 ## Alterações
 
-### 1. Adicionar campo no tipo (src/types/venda.ts)
+### 1. Simplificar Gráfico de Faturamento Mensal
 
-Adicionar o novo campo `"Flag Tipo"` na interface `VendaItem`:
+**Arquivo:** `src/components/dashboard/FaturamentoMensalChart.tsx`
 
-```typescript
-"Flag Tipo": "V" | "D";
-```
+Remover as linhas de "Bruto" e manter apenas as de "Líquido":
 
-### 2. Atualizar função de separação (src/lib/dataProcessing.ts)
+- Remover `${anoAtual} Bruto` e `${anoAnterior} Bruto` do chartData
+- Remover os componentes `<Line>` de Bruto (linhas 70-78 e 89-99)
+- Manter apenas as linhas de Líquido para o ano atual e anterior
+- Atualizar o título para "Comparativo Mensal de Faturamento Líquido"
 
-Modificar a função `separarVendasDevolucoes` para usar o novo campo:
-
-**Antes:**
-```typescript
-export function separarVendasDevolucoes(data: VendaItem[]) {
-  const vendas = data.filter((item) => !item["Tipo Movimento"]?.toLowerCase().includes("devolução"));
-  const devolucoes = data.filter((item) => item["Tipo Movimento"]?.toLowerCase().includes("devolução"));
-  return { vendas, devolucoes };
-}
-```
-
-**Depois:**
-```typescript
-export function separarVendasDevolucoes(data: VendaItem[]) {
-  const vendas = data.filter((item) => item["Flag Tipo"] === "V");
-  const devolucoes = data.filter((item) => item["Flag Tipo"] === "D");
-  return { vendas, devolucoes };
-}
-```
-
-### 3. Corrigir erro de build (src/lib/exportToExcel.ts)
-
-Corrigir o erro de tipagem no array `colWidths` - o tipo `ColInfo[]` espera objetos, não números:
-
-**Antes:**
-```typescript
-const colWidths = vendasFormatadas.length > 0 ? Object.keys(vendasFormatadas[0]).map(() => 15) : [];
-```
-
-**Depois:**
-```typescript
-const colWidths = vendasFormatadas.length > 0 
-  ? Object.keys(vendasFormatadas[0]).map(() => ({ wch: 15 })) 
-  : [];
-```
-
-Também atualizar a lógica de separação neste arquivo para usar `"Flag Tipo"`.
-
-### 4. Incluir "Flag Tipo" na exportação Excel
-
-Adicionar o campo `"Flag Tipo"` na função `formatarDados` para que apareça no Excel exportado.
+**Resultado visual:** Gráfico mais limpo com apenas 2 linhas (ano atual vs anterior)
 
 ---
 
-## Arquivos afetados
+### 2. Adicionar Tooltip nos KPI Cards
+
+**Arquivo:** `src/components/dashboard/KPICard.tsx`
+
+Adicionar um tooltip que mostra o valor exato quando o usuário passa o mouse:
+
+- Importar componentes de Tooltip do Radix UI
+- Envolver o valor formatado em um `<Tooltip>`
+- Mostrar o valor completo (formatCurrency) no tooltip
+- Funciona para todos os formatos: currency, compact, percent, number
+
+**Exemplo de interação:**
+- Card mostra: `R$ 3,8M` (formato compacto)
+- Tooltip mostra: `R$ 3.807.419,39` (valor exato)
+
+---
+
+## Arquivos Afetados
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/types/venda.ts` | Adicionar campo `"Flag Tipo"` |
-| `src/lib/dataProcessing.ts` | Atualizar `separarVendasDevolucoes` |
-| `src/lib/exportToExcel.ts` | Corrigir tipagem + usar `"Flag Tipo"` |
+| `src/components/dashboard/FaturamentoMensalChart.tsx` | Remover linhas de Bruto |
+| `src/components/dashboard/KPICard.tsx` | Adicionar Tooltip com valor exato |
+
+---
+
+## Detalhes Técnicos
+
+### Novo formatador para valores exatos
+
+Vou criar uma função `formatCurrencyExact` em `src/lib/formatters.ts` que formata moeda com todas as casas decimais:
+
+```typescript
+export function formatCurrencyExact(value: number): string {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+```
+
+### Estrutura do Tooltip no KPICard
+
+```tsx
+<Tooltip>
+  <TooltipTrigger asChild>
+    <span className="text-2xl font-bold text-foreground cursor-help">
+      {formattedValue}
+    </span>
+  </TooltipTrigger>
+  <TooltipContent>
+    <p>{exactValue}</p>
+  </TooltipContent>
+</Tooltip>
+```
 
 ---
 
 ## Benefícios
 
-- Filtro mais confiável (não depende de texto)
-- Performance levemente melhor (comparação simples vs string matching)
-- Código mais limpo e fácil de manter
+- Gráfico mais limpo e fácil de ler
+- Acesso fácil ao valor exato sem precisar exportar dados
+- Melhor experiência do usuário para análises precisas
 
