@@ -282,6 +282,7 @@ export default function VisaoRegional() {
                 <RegionalTable
                   dados={granularidade === "uf" ? dadosProcessados.dadosPorUF : dadosProcessados.dadosPorRegiao}
                   tipo={granularidade}
+                  metrica={metrica}
                   onRowClick={handleEstadoClick}
                   selecionado={estadoSelecionado}
                 />
