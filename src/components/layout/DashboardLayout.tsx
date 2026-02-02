@@ -26,7 +26,7 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { path: "/", label: "Visão Geral", icon: BarChart3 },
   { path: "/regional", label: "Regional", icon: MapPin },
-  { path: "/clientes", label: "Clientes", icon: Users, disabled: true },
+  { path: "/clientes", label: "Clientes", icon: Users },
   { path: "/inteligencia", label: "Inteligência", icon: Brain, disabled: true },
 ];
 
