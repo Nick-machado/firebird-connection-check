@@ -23,8 +23,8 @@ export function separarVendasDevolucoes(data: VendaItem[]) {
 export function calcularKPIs(data: VendaItem[]): KPIData {
   const { vendas, devolucoes } = separarVendasDevolucoes(data);
 
-  const totalFaturado = vendas.reduce((sum, item) => sum + (item["Total NF"] || 0), 0);
-  const totalDevolucoes = Math.abs(devolucoes.reduce((sum, item) => sum + (item["Total NF"] || 0), 0));
+  const totalFaturado = vendas.reduce((sum, item) => sum + (item["Total Merc."] || 0), 0);
+  const totalDevolucoes = Math.abs(devolucoes.reduce((sum, item) => sum + (item["Total Merc."] || 0), 0));
   const faturamentoLiquido = totalFaturado - totalDevolucoes;
   const totalCMV = Math.abs(vendas.reduce((sum, item) => sum + (item["Vlr.CMV"] || 0), 0));
   const totalMargem = vendas.reduce((sum, item) => sum + (item["$ Margem"] || 0), 0);
@@ -60,7 +60,7 @@ export function calcularFaturamentoMensal(data: VendaItem[], ano: number): Fatur
     const mes = Number(item.Mês);
     if (!isNaN(mes) && mes >= 1 && mes <= 12) {
       const atual = faturamentoBrutoPorMes.get(mes) || 0;
-      faturamentoBrutoPorMes.set(mes, atual + (item["Total NF"] || 0));
+      faturamentoBrutoPorMes.set(mes, atual + (item["Total Merc."] || 0));
     }
   });
 
@@ -69,7 +69,7 @@ export function calcularFaturamentoMensal(data: VendaItem[], ano: number): Fatur
     const mes = Number(item.Mês);
     if (!isNaN(mes) && mes >= 1 && mes <= 12) {
       const atual = devolucoesPorMes.get(mes) || 0;
-      devolucoesPorMes.set(mes, atual + Math.abs(item["Total NF"] || 0));
+      devolucoesPorMes.set(mes, atual + Math.abs(item["Total Merc."] || 0));
     }
   });
 
@@ -99,7 +99,7 @@ export function calcularFaturamentoPorCanal(data: VendaItem[]): FaturamentoPorCa
 
   vendas.forEach((item) => {
     const canal = item.Atividade?.trim() || "Outros";
-    const valor = item["Total NF"] || 0;
+    const valor = item["Total Merc."] || 0;
     porCanal.set(canal, (porCanal.get(canal) || 0) + valor);
     total += valor;
   });
@@ -126,7 +126,7 @@ export function calcularTopProdutos(data: VendaItem[], limite = 10): TopItem[] {
     const produto = item.Produto?.trim() || "Sem nome";
     const atual = porProduto.get(produto) || { valor: 0, quantidade: 0, margem: 0 };
     porProduto.set(produto, {
-      valor: atual.valor + (item["Total NF"] || 0),
+      valor: atual.valor + (item["Total Merc."] || 0),
       quantidade: atual.quantidade + (item["Quant."] || 0),
       margem: atual.margem + (item["$ Margem"] || 0),
     });
@@ -153,7 +153,7 @@ export function calcularTopVendedores(data: VendaItem[], limite = 10): TopItem[]
 
   vendas.forEach((item) => {
     const vendedor = item.Vendedor?.trim() || "Sem vendedor";
-    porVendedor.set(vendedor, (porVendedor.get(vendedor) || 0) + (item["Total NF"] || 0));
+    porVendedor.set(vendedor, (porVendedor.get(vendedor) || 0) + (item["Total Merc."] || 0));
   });
 
   const resultado: TopItem[] = [];
@@ -173,7 +173,7 @@ export function calcularTopClientes(data: VendaItem[], limite = 10): TopItem[] {
   vendas.forEach((item) => {
     const cliente = item.Cliente?.trim() || "Sem cliente";
     const atual = porCliente.get(cliente) || { valor: 0, notas: new Set() };
-    atual.valor += item["Total NF"] || 0;
+    atual.valor += item["Total Merc."] || 0;
     if (item.Nota) atual.notas.add(item.Nota.trim());
     porCliente.set(cliente, atual);
   });
@@ -201,7 +201,7 @@ export function calcularMargemPorCanal(data: VendaItem[]): { canal: string; marg
     const atual = porCanal.get(canal) || { margem: 0, faturamento: 0 };
     porCanal.set(canal, {
       margem: atual.margem + (item["$ Margem"] || 0),
-      faturamento: atual.faturamento + (item["Total NF"] || 0),
+      faturamento: atual.faturamento + (item["Total Merc."] || 0),
     });
   });
 
@@ -226,7 +226,7 @@ export function calcularFaturamentoPorRegiao(data: VendaItem[]): TopItem[] {
 
   vendas.forEach((item) => {
     const regiao = item.Região?.trim() || "Outros";
-    porRegiao.set(regiao, (porRegiao.get(regiao) || 0) + (item["Total NF"] || 0));
+    porRegiao.set(regiao, (porRegiao.get(regiao) || 0) + (item["Total Merc."] || 0));
   });
 
   const resultado: TopItem[] = [];
@@ -245,7 +245,7 @@ export function calcularFaturamentoPorUF(data: VendaItem[]): TopItem[] {
 
   vendas.forEach((item) => {
     const uf = item.UF?.trim() || "Outros";
-    porUF.set(uf, (porUF.get(uf) || 0) + (item["Total NF"] || 0));
+    porUF.set(uf, (porUF.get(uf) || 0) + (item["Total Merc."] || 0));
   });
 
   const resultado: TopItem[] = [];
