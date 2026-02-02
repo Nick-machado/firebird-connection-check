@@ -87,7 +87,7 @@ function ListaCompleta({
           className="pl-9"
         />
       </div>
-      <ScrollArea className="h-[400px]">
+      <ScrollArea className="h-[350px]">
         <div className="space-y-1 pr-4">
           {itensFiltrados.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
@@ -157,7 +157,7 @@ function ListaCanais({
           className="pl-9"
         />
       </div>
-      <ScrollArea className="h-[400px]">
+      <ScrollArea className="h-[350px]">
         <div className="space-y-1 pr-4">
           {canaisFiltrados.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
@@ -226,7 +226,7 @@ export function RegionalFullDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="w-[95vw] max-w-4xl h-[85vh] overflow-hidden flex flex-col p-6">
         <DialogHeader className="pb-2">
           <div className="flex items-center gap-2">
             <MapPin className="h-5 w-5 text-primary" />
@@ -242,7 +242,7 @@ export function RegionalFullDetailsModal({
         </DialogHeader>
 
         {/* Métricas principais */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 py-4 border-b">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 py-4 border-b shrink-0">
           <MetricaCard
             titulo="Faturamento"
             valor={formatCompactCurrency(dadosEstado.faturamento)}
@@ -276,41 +276,41 @@ export function RegionalFullDetailsModal({
         </div>
 
         {/* Tabs com listas completas */}
-        <Tabs defaultValue="produtos" className="flex-1 min-h-0">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs defaultValue="produtos" className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <TabsList className="grid w-full grid-cols-3 shrink-0">
             <TabsTrigger value="produtos" className="gap-1 text-xs sm:text-sm">
               <ShoppingBag className="h-4 w-4" />
-              <span className="hidden sm:inline">Produtos</span>
+              <span>Produtos</span>
               <span className="text-xs text-muted-foreground">({produtos.length})</span>
             </TabsTrigger>
             <TabsTrigger value="clientes" className="gap-1 text-xs sm:text-sm">
               <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Clientes</span>
+              <span>Clientes</span>
               <span className="text-xs text-muted-foreground">({clientes.length})</span>
             </TabsTrigger>
             <TabsTrigger value="canais" className="gap-1 text-xs sm:text-sm">
               <Store className="h-4 w-4" />
-              <span className="hidden sm:inline">Canais</span>
+              <span>Canais</span>
               <span className="text-xs text-muted-foreground">({canais.length})</span>
             </TabsTrigger>
           </TabsList>
 
-          <div className="mt-4">
-            <TabsContent value="produtos" className="mt-0 data-[state=active]:block">
+          <div className="flex-1 mt-4 overflow-hidden">
+            <TabsContent value="produtos" className="mt-0 h-full data-[state=active]:block">
               <ListaCompleta
                 items={produtos}
                 searchPlaceholder="Buscar produto..."
               />
             </TabsContent>
 
-            <TabsContent value="clientes" className="mt-0 data-[state=active]:block">
+            <TabsContent value="clientes" className="mt-0 h-full data-[state=active]:block">
               <ListaCompleta
                 items={clientes}
                 searchPlaceholder="Buscar cliente..."
               />
             </TabsContent>
 
-            <TabsContent value="canais" className="mt-0 data-[state=active]:block">
+            <TabsContent value="canais" className="mt-0 h-full data-[state=active]:block">
               <ListaCanais canais={canais} />
             </TabsContent>
           </div>
