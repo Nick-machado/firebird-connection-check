@@ -65,7 +65,7 @@ export function RegionalTable({ dados, tipo, metrica, onRowClick, selecionado }:
   };
 
   return (
-    <Card className="h-[560px] flex flex-col">
+    <Card className="h-[600px] flex flex-col">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg">{titulo}</CardTitle>
         <p className="text-xs text-muted-foreground">Clique para ver detalhes</p>
