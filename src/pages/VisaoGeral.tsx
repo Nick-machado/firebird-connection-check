@@ -230,15 +230,7 @@ export default function VisaoGeral() {
             ) : (
               <>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-                  <div className="animate-fade-in-up stagger-1 opacity-0">
-                    <KPICard
-                      title="Faturamento Bruto"
-                      value={dadosProcessados.kpisMes.totalFaturado}
-                      format="compact"
-                      icon={<DollarSign className="h-4 w-4" />}
-                    />
-                  </div>
-                  <div className="animate-fade-in-up stagger-2 opacity-0">
+                <div className="animate-fade-in-up stagger-1 opacity-0">
                     <KPICard
                       title="Fat. Líquido"
                       value={dadosProcessados.kpisMes.faturamentoLiquido}
@@ -246,6 +238,14 @@ export default function VisaoGeral() {
                       icon={<DollarSign className="h-4 w-4" />}
                       trend={dadosProcessados.variacaoFaturamento}
                       trendLabel="vs ano anterior"
+                    />
+                  </div>
+                  <div className="animate-fade-in-up stagger-2 opacity-0">
+                    <KPICard
+                      title="Faturamento Bruto"
+                      value={dadosProcessados.kpisMes.totalFaturado}
+                      format="compact"
+                      icon={<DollarSign className="h-4 w-4" />}
                     />
                   </div>
                   <div className="animate-fade-in-up stagger-3 opacity-0">
