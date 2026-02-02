@@ -91,7 +91,7 @@ export function calcularDadosPorUF(data: VendaItem[]): DadosRegionais[] {
       regiao: getRegiaoFromUF(uf),
     };
 
-    atual.faturamentoVendas += item["Total NF"] || 0;
+    atual.faturamentoVendas += item["Total Merc."] || 0;
     atual.margem += item["$ Margem"] || 0;
     atual.quantidade += item["Quant."] || 0;
     if (item.Nota) atual.notas.add(item.Nota.trim());
@@ -111,7 +111,7 @@ export function calcularDadosPorUF(data: VendaItem[]): DadosRegionais[] {
       regiao: getRegiaoFromUF(uf),
     };
 
-    atual.faturamentoDevolucoes += Math.abs(item["Total NF"] || 0);
+    atual.faturamentoDevolucoes += Math.abs(item["Total Merc."] || 0);
     
     porUF.set(uf, atual);
   });
@@ -182,12 +182,12 @@ function calcularFaturamentoLiquidoPorUF(data: VendaItem[]): Map<string, number>
 
   vendas.forEach((item) => {
     const uf = item.UF?.trim().toUpperCase() || "XX";
-    resultado.set(uf, (resultado.get(uf) || 0) + (item["Total NF"] || 0));
+    resultado.set(uf, (resultado.get(uf) || 0) + (item["Total Merc."] || 0));
   });
 
   devolucoes.forEach((item) => {
     const uf = item.UF?.trim().toUpperCase() || "XX";
-    resultado.set(uf, (resultado.get(uf) || 0) - Math.abs(item["Total NF"] || 0));
+    resultado.set(uf, (resultado.get(uf) || 0) - Math.abs(item["Total Merc."] || 0));
   });
 
   return resultado;
@@ -231,13 +231,13 @@ function calcularFaturamentoLiquidoPorRegiao(data: VendaItem[]): Map<string, num
   vendas.forEach((item) => {
     const uf = item.UF?.trim().toUpperCase() || "XX";
     const regiao = getRegiaoFromUF(uf);
-    resultado.set(regiao, (resultado.get(regiao) || 0) + (item["Total NF"] || 0));
+    resultado.set(regiao, (resultado.get(regiao) || 0) + (item["Total Merc."] || 0));
   });
 
   devolucoes.forEach((item) => {
     const uf = item.UF?.trim().toUpperCase() || "XX";
     const regiao = getRegiaoFromUF(uf);
-    resultado.set(regiao, (resultado.get(regiao) || 0) - Math.abs(item["Total NF"] || 0));
+    resultado.set(regiao, (resultado.get(regiao) || 0) - Math.abs(item["Total Merc."] || 0));
   });
 
   return resultado;
@@ -284,7 +284,7 @@ export function calcularCanaisPorUF(data: VendaItem[]): Map<string, CanalPorRegi
   vendas.forEach((item) => {
     const uf = item.UF?.trim().toUpperCase() || "XX";
     const canal = item.Atividade?.trim() || "Outros";
-    const valor = item["Total NF"] || 0;
+    const valor = item["Total Merc."] || 0;
 
     if (!porUFCanal.has(uf)) {
       porUFCanal.set(uf, new Map());
@@ -299,7 +299,7 @@ export function calcularCanaisPorUF(data: VendaItem[]): Map<string, CanalPorRegi
   devolucoes.forEach((item) => {
     const uf = item.UF?.trim().toUpperCase() || "XX";
     const canal = item.Atividade?.trim() || "Outros";
-    const valor = Math.abs(item["Total NF"] || 0);
+    const valor = Math.abs(item["Total Merc."] || 0);
 
     if (porUFCanal.has(uf)) {
       const canaisUF = porUFCanal.get(uf)!;
@@ -342,7 +342,7 @@ export function calcularCanaisPorRegiao(data: VendaItem[]): Map<string, CanalPor
     const uf = item.UF?.trim().toUpperCase() || "XX";
     const regiao = getRegiaoFromUF(uf);
     const canal = item.Atividade?.trim() || "Outros";
-    const valor = item["Total NF"] || 0;
+    const valor = item["Total Merc."] || 0;
 
     if (!porRegiaoCanal.has(regiao)) {
       porRegiaoCanal.set(regiao, new Map());
@@ -358,7 +358,7 @@ export function calcularCanaisPorRegiao(data: VendaItem[]): Map<string, CanalPor
     const uf = item.UF?.trim().toUpperCase() || "XX";
     const regiao = getRegiaoFromUF(uf);
     const canal = item.Atividade?.trim() || "Outros";
-    const valor = Math.abs(item["Total NF"] || 0);
+    const valor = Math.abs(item["Total Merc."] || 0);
 
     if (porRegiaoCanal.has(regiao)) {
       const canaisRegiao = porRegiaoCanal.get(regiao)!;
@@ -411,12 +411,12 @@ export function calcularTopProdutosPorLocal(
   
   vendasFiltradas.forEach((item) => {
     const produto = item.Produto?.trim() || "Sem nome";
-    porProduto.set(produto, (porProduto.get(produto) || 0) + (item["Total NF"] || 0));
+    porProduto.set(produto, (porProduto.get(produto) || 0) + (item["Total Merc."] || 0));
   });
 
   devolucoesFiltradas.forEach((item) => {
     const produto = item.Produto?.trim() || "Sem nome";
-    porProduto.set(produto, (porProduto.get(produto) || 0) - Math.abs(item["Total NF"] || 0));
+    porProduto.set(produto, (porProduto.get(produto) || 0) - Math.abs(item["Total Merc."] || 0));
   });
 
   const resultado: { nome: string; valor: number }[] = [];
@@ -450,12 +450,12 @@ export function calcularTopClientesPorLocal(
   
   vendasFiltradas.forEach((item) => {
     const cliente = item.Cliente?.trim() || "Sem cliente";
-    porCliente.set(cliente, (porCliente.get(cliente) || 0) + (item["Total NF"] || 0));
+    porCliente.set(cliente, (porCliente.get(cliente) || 0) + (item["Total Merc."] || 0));
   });
 
   devolucoesFiltradas.forEach((item) => {
     const cliente = item.Cliente?.trim() || "Sem cliente";
-    porCliente.set(cliente, (porCliente.get(cliente) || 0) - Math.abs(item["Total NF"] || 0));
+    porCliente.set(cliente, (porCliente.get(cliente) || 0) - Math.abs(item["Total Merc."] || 0));
   });
 
   const resultado: { nome: string; valor: number }[] = [];
