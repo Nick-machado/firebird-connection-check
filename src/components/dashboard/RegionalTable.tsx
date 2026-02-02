@@ -65,13 +65,13 @@ export function RegionalTable({ dados, tipo, metrica, onRowClick, selecionado }:
   };
 
   return (
-    <Card className="h-[500px] flex flex-col">
-      <CardHeader className="pb-2 shrink-0">
+    <Card>
+      <CardHeader className="pb-2">
         <CardTitle className="text-lg">{titulo}</CardTitle>
         <p className="text-xs text-muted-foreground">Clique para ver detalhes</p>
       </CardHeader>
-      <CardContent className="flex-1 overflow-hidden">
-        <div className="h-full overflow-y-auto">
+      <CardContent>
+        <div className="max-h-[400px] overflow-y-auto">
           <Table>
             <TableHeader>
               <TableRow>

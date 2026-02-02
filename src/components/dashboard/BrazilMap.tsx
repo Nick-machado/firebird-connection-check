@@ -78,7 +78,7 @@ export function BrazilMap({ dados, metrica, onEstadoClick, estadoSelecionado }: 
   const dadoEstadoAtual = estadoAtual ? dadosPorUF.get(estadoAtual) : null;
 
   return (
-    <Card className="h-[500px] flex flex-col">
+    <Card className="h-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg">Mapa de Vendas por Estado</CardTitle>
       </CardHeader>
