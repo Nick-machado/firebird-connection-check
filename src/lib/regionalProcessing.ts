@@ -9,6 +9,8 @@ export interface DadosRegionais {
   margemPercentual: number;
   quantidade: number;
   notas: number;
+  variacaoMoM?: number;
+  variacaoYoY?: number;
 }
 
 export interface DadosAgrupados {
@@ -18,6 +20,15 @@ export interface DadosAgrupados {
   margemPercentual: number;
   quantidade: number;
   notas: number;
+  variacaoMoM?: number;
+  variacaoYoY?: number;
+}
+
+export interface CanalPorRegiao {
+  regiao: string;
+  canal: string;
+  faturamento: number;
+  percentual: number;
 }
 
 // Mapeamento de UF para Região
@@ -141,6 +152,176 @@ export function calcularDadosPorRegiao(data: VendaItem[]): DadosAgrupados[] {
   });
 
   return resultado.sort((a, b) => b.faturamento - a.faturamento);
+}
+
+// Calcula variações MoM e YoY por UF
+export function calcularVariacoesPorUF(
+  dadosAtual: VendaItem[],
+  dadosMesAnterior: VendaItem[],
+  dadosAnoAnterior: VendaItem[]
+): Map<string, { variacaoMoM: number; variacaoYoY: number }> {
+  const faturamentoAtual = new Map<string, number>();
+  const faturamentoMesAnterior = new Map<string, number>();
+  const faturamentoAnoAnterior = new Map<string, number>();
+
+  const processarDados = (data: VendaItem[], mapa: Map<string, number>) => {
+    const { vendas } = separarVendasDevolucoes(data);
+    vendas.forEach((item) => {
+      const uf = item.UF?.trim().toUpperCase() || "XX";
+      mapa.set(uf, (mapa.get(uf) || 0) + (item["Total NF"] || 0));
+    });
+  };
+
+  processarDados(dadosAtual, faturamentoAtual);
+  processarDados(dadosMesAnterior, faturamentoMesAnterior);
+  processarDados(dadosAnoAnterior, faturamentoAnoAnterior);
+
+  const resultado = new Map<string, { variacaoMoM: number; variacaoYoY: number }>();
+  
+  faturamentoAtual.forEach((valorAtual, uf) => {
+    const valorMesAnterior = faturamentoMesAnterior.get(uf) || 0;
+    const valorAnoAnterior = faturamentoAnoAnterior.get(uf) || 0;
+
+    const variacaoMoM = valorMesAnterior > 0 
+      ? ((valorAtual - valorMesAnterior) / valorMesAnterior) * 100 
+      : valorAtual > 0 ? 100 : 0;
+    
+    const variacaoYoY = valorAnoAnterior > 0 
+      ? ((valorAtual - valorAnoAnterior) / valorAnoAnterior) * 100 
+      : valorAtual > 0 ? 100 : 0;
+
+    resultado.set(uf, { variacaoMoM, variacaoYoY });
+  });
+
+  return resultado;
+}
+
+// Calcula variações MoM e YoY por Região
+export function calcularVariacoesPorRegiao(
+  dadosAtual: VendaItem[],
+  dadosMesAnterior: VendaItem[],
+  dadosAnoAnterior: VendaItem[]
+): Map<string, { variacaoMoM: number; variacaoYoY: number }> {
+  const calcularPorRegiao = (data: VendaItem[]): Map<string, number> => {
+    const { vendas } = separarVendasDevolucoes(data);
+    const porRegiao = new Map<string, number>();
+    
+    vendas.forEach((item) => {
+      const uf = item.UF?.trim().toUpperCase() || "XX";
+      const regiao = getRegiaoFromUF(uf);
+      porRegiao.set(regiao, (porRegiao.get(regiao) || 0) + (item["Total NF"] || 0));
+    });
+    
+    return porRegiao;
+  };
+
+  const faturamentoAtual = calcularPorRegiao(dadosAtual);
+  const faturamentoMesAnterior = calcularPorRegiao(dadosMesAnterior);
+  const faturamentoAnoAnterior = calcularPorRegiao(dadosAnoAnterior);
+
+  const resultado = new Map<string, { variacaoMoM: number; variacaoYoY: number }>();
+  
+  faturamentoAtual.forEach((valorAtual, regiao) => {
+    const valorMesAnterior = faturamentoMesAnterior.get(regiao) || 0;
+    const valorAnoAnterior = faturamentoAnoAnterior.get(regiao) || 0;
+
+    const variacaoMoM = valorMesAnterior > 0 
+      ? ((valorAtual - valorMesAnterior) / valorMesAnterior) * 100 
+      : valorAtual > 0 ? 100 : 0;
+    
+    const variacaoYoY = valorAnoAnterior > 0 
+      ? ((valorAtual - valorAnoAnterior) / valorAnoAnterior) * 100 
+      : valorAtual > 0 ? 100 : 0;
+
+    resultado.set(regiao, { variacaoMoM, variacaoYoY });
+  });
+
+  return resultado;
+}
+
+// Calcula canais mais fortes por UF
+export function calcularCanaisPorUF(data: VendaItem[]): Map<string, CanalPorRegiao[]> {
+  const { vendas } = separarVendasDevolucoes(data);
+
+  const porUFCanal = new Map<string, Map<string, number>>();
+  const totalPorUF = new Map<string, number>();
+
+  vendas.forEach((item) => {
+    const uf = item.UF?.trim().toUpperCase() || "XX";
+    const canal = item.Atividade?.trim() || "Outros";
+    const valor = item["Total NF"] || 0;
+
+    if (!porUFCanal.has(uf)) {
+      porUFCanal.set(uf, new Map());
+    }
+    const canaisUF = porUFCanal.get(uf)!;
+    canaisUF.set(canal, (canaisUF.get(canal) || 0) + valor);
+    
+    totalPorUF.set(uf, (totalPorUF.get(uf) || 0) + valor);
+  });
+
+  const resultado = new Map<string, CanalPorRegiao[]>();
+  
+  porUFCanal.forEach((canais, uf) => {
+    const total = totalPorUF.get(uf) || 1;
+    const canaisOrdenados: CanalPorRegiao[] = [];
+    
+    canais.forEach((faturamento, canal) => {
+      canaisOrdenados.push({
+        regiao: uf,
+        canal,
+        faturamento,
+        percentual: (faturamento / total) * 100,
+      });
+    });
+    
+    resultado.set(uf, canaisOrdenados.sort((a, b) => b.faturamento - a.faturamento));
+  });
+
+  return resultado;
+}
+
+// Calcula canais mais fortes por Região
+export function calcularCanaisPorRegiao(data: VendaItem[]): Map<string, CanalPorRegiao[]> {
+  const { vendas } = separarVendasDevolucoes(data);
+
+  const porRegiaoCanal = new Map<string, Map<string, number>>();
+  const totalPorRegiao = new Map<string, number>();
+
+  vendas.forEach((item) => {
+    const uf = item.UF?.trim().toUpperCase() || "XX";
+    const regiao = getRegiaoFromUF(uf);
+    const canal = item.Atividade?.trim() || "Outros";
+    const valor = item["Total NF"] || 0;
+
+    if (!porRegiaoCanal.has(regiao)) {
+      porRegiaoCanal.set(regiao, new Map());
+    }
+    const canaisRegiao = porRegiaoCanal.get(regiao)!;
+    canaisRegiao.set(canal, (canaisRegiao.get(canal) || 0) + valor);
+    
+    totalPorRegiao.set(regiao, (totalPorRegiao.get(regiao) || 0) + valor);
+  });
+
+  const resultado = new Map<string, CanalPorRegiao[]>();
+  
+  porRegiaoCanal.forEach((canais, regiao) => {
+    const total = totalPorRegiao.get(regiao) || 1;
+    const canaisOrdenados: CanalPorRegiao[] = [];
+    
+    canais.forEach((faturamento, canal) => {
+      canaisOrdenados.push({
+        regiao,
+        canal,
+        faturamento,
+        percentual: (faturamento / total) * 100,
+      });
+    });
+    
+    resultado.set(regiao, canaisOrdenados.sort((a, b) => b.faturamento - a.faturamento));
+  });
+
+  return resultado;
 }
 
 // Top produtos de uma UF/Região específica
