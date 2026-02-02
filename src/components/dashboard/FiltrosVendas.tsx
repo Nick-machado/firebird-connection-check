@@ -1,7 +1,8 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { MESES, EQUIPES, ANOS_DISPONIVEIS } from "@/lib/constants";
-import { Calendar, Users, Filter } from "lucide-react";
+import { Calendar, Users, Filter, Lock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface FiltrosVendasProps {
   ano: number;
@@ -11,6 +12,8 @@ interface FiltrosVendasProps {
   onMesChange: (mes: number) => void;
   onEquipeChange: (equipe: string) => void;
   mesAtualMax?: number;
+  sectorLocked?: boolean;
+  sectorLabel?: string;
 }
 
 export function FiltrosVendas({
@@ -21,6 +24,8 @@ export function FiltrosVendas({
   onMesChange,
   onEquipeChange,
   mesAtualMax = 12,
+  sectorLocked = false,
+  sectorLabel,
 }: FiltrosVendasProps) {
   const anoAtual = new Date().getFullYear();
   const mesesDisponiveis = ano === anoAtual ? MESES.filter((m) => m.valor <= mesAtualMax) : MESES;
@@ -65,21 +70,30 @@ export function FiltrosVendas({
             </Select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <Select value={equipe} onValueChange={onEquipeChange}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {EQUIPES.map((e) => (
-                  <SelectItem key={e.valor} value={e.valor}>
-                    {e.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {sectorLocked ? (
+            <div className="flex items-center gap-2">
+              <Lock className="h-4 w-4 text-muted-foreground" />
+              <Badge variant="secondary" className="px-3 py-1">
+                {sectorLabel || "Equipe restrita"}
+              </Badge>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <Select value={equipe} onValueChange={onEquipeChange}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {EQUIPES.map((e) => (
+                    <SelectItem key={e.valor} value={e.valor}>
+                      {e.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

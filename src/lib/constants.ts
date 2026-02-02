@@ -23,6 +23,19 @@ export const EQUIPES = [
   { valor: "EXPORTAÇÃO INDUSTRIA", nome: "Exportação Indústria" },
 ];
 
+// Mapeamento de setor (role) para equipes permitidas
+export const SECTOR_TO_EQUIPES: Record<string, string[]> = {
+  varejo: ["VAREJO"],
+  industria: ["INDUSTRIAL"],
+  exportacao: ["EXPORTAÇÃO VAREJO", "EXPORTAÇÃO INDUSTRIA"],
+};
+
+// Equipes por setor para filtrar automaticamente
+export const getEquipesForSector = (sector: string | null): string[] => {
+  if (!sector) return EQUIPES.map((e) => e.valor);
+  return SECTOR_TO_EQUIPES[sector] || [];
+};
+
 export const ANOS_DISPONIVEIS = [2026, 2025, 2024, 2023, 2022];
 
 export const CHART_COLORS = {
