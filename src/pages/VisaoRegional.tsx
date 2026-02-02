@@ -4,7 +4,7 @@ import { FiltrosVendas } from "@/components/dashboard/FiltrosVendas";
 import { BrazilMap } from "@/components/dashboard/BrazilMap";
 import { RegionalTable } from "@/components/dashboard/RegionalTable";
 import { RegionalDetailPanel } from "@/components/dashboard/RegionalDetailPanel";
-import { RegionalChannelsChart } from "@/components/dashboard/RegionalChannelsChart";
+
 
 import { useVendasDoisAnos } from "@/hooks/useVendas";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -315,14 +315,6 @@ export default function VisaoRegional() {
               </div>
             </div>
 
-            {/* Gráfico de Canais por Região */}
-            <div className="animate-scale-in stagger-6 opacity-0">
-              <RegionalChannelsChart
-                dados={granularidade === "uf" ? dadosProcessados.canaisPorUF : dadosProcessados.canaisPorRegiao}
-                tipo={granularidade}
-                selecionado={estadoSelecionado}
-              />
-            </div>
           </>
         )}
 
