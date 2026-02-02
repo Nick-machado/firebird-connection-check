@@ -25,7 +25,9 @@ export function calcularKPIs(data: VendaItem[]): KPIData {
 
   const totalFaturado = vendas.reduce((sum, item) => sum + (item["Total NF"] || 0), 0);
   const totalDevolucoes = Math.abs(devolucoes.reduce((sum, item) => sum + (item["Total NF"] || 0), 0));
-  const faturamentoLiquido = totalFaturado - totalDevolucoes;
+  // Faturamento Líquido usa a coluna "Total Merc." da API
+  const faturamentoLiquido = vendas.reduce((sum, item) => sum + (item["Total Merc."] || 0), 0) 
+    - Math.abs(devolucoes.reduce((sum, item) => sum + (item["Total Merc."] || 0), 0));
   const totalCMV = Math.abs(vendas.reduce((sum, item) => sum + (item["Vlr.CMV"] || 0), 0));
   const totalMargem = vendas.reduce((sum, item) => sum + (item["$ Margem"] || 0), 0);
   
@@ -53,36 +55,33 @@ export function calcularFaturamentoMensal(data: VendaItem[], ano: number): Fatur
   const { vendas, devolucoes } = separarVendasDevolucoes(data);
 
   const faturamentoBrutoPorMes = new Map<number, number>();
-  const devolucoesPorMes = new Map<number, number>();
+  const faturamentoLiquidoPorMes = new Map<number, number>();
 
-  // Soma vendas (bruto)
+  // Soma vendas (bruto usa Total NF, líquido usa Total Merc.)
   vendas.forEach((item) => {
     const mes = Number(item.Mês);
     if (!isNaN(mes) && mes >= 1 && mes <= 12) {
-      const atual = faturamentoBrutoPorMes.get(mes) || 0;
-      faturamentoBrutoPorMes.set(mes, atual + (item["Total NF"] || 0));
+      faturamentoBrutoPorMes.set(mes, (faturamentoBrutoPorMes.get(mes) || 0) + (item["Total NF"] || 0));
+      faturamentoLiquidoPorMes.set(mes, (faturamentoLiquidoPorMes.get(mes) || 0) + (item["Total Merc."] || 0));
     }
   });
 
-  // Soma devoluções
+  // Subtrai devoluções do líquido
   devolucoes.forEach((item) => {
     const mes = Number(item.Mês);
     if (!isNaN(mes) && mes >= 1 && mes <= 12) {
-      const atual = devolucoesPorMes.get(mes) || 0;
-      devolucoesPorMes.set(mes, atual + Math.abs(item["Total NF"] || 0));
+      faturamentoLiquidoPorMes.set(mes, (faturamentoLiquidoPorMes.get(mes) || 0) - Math.abs(item["Total Merc."] || 0));
     }
   });
 
   // Converte para array ordenado
   const resultado: FaturamentoMensal[] = [];
   for (let mes = 1; mes <= 12; mes++) {
-    const bruto = faturamentoBrutoPorMes.get(mes) || 0;
-    const devolucao = devolucoesPorMes.get(mes) || 0;
     resultado.push({
       mes,
       mesNome: getMesNome(mes),
-      valorBruto: bruto,
-      valorLiquido: bruto - devolucao,
+      valorBruto: faturamentoBrutoPorMes.get(mes) || 0,
+      valorLiquido: faturamentoLiquidoPorMes.get(mes) || 0,
       ano,
     });
   }
