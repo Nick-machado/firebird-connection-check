@@ -4,8 +4,9 @@ import * as React from "react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { TrendingUp, Mail, Lock, Loader2 } from "lucide-react";
+import { Mail, Lock, Loader2 } from "lucide-react";
 import { z } from "zod";
+import logoImg from "@/assets/logo.png";
 
 const emailSchema = z.string().email("Por favor, insira um email válido");
 const passwordSchema = z.string().min(6, "A senha deve ter no mínimo 6 caracteres");
@@ -84,7 +85,7 @@ const SignIn1 = ({ onToggleMode, isSignUp = false }: SignIn1Props) => {
         {/* Logo */}
         <div className="flex justify-center mb-6">
           <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
-            <TrendingUp className="h-8 w-8 text-primary" />
+            <img src={logoImg} alt="HM Rubber" className="h-8 w-8 object-contain" />
           </div>
         </div>
 

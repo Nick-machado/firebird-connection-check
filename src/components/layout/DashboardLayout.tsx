@@ -5,21 +5,33 @@ import {
   Users,
   MapPin,
   Brain,
-  Home,
-  TrendingUp,
   Menu,
   X,
   LogOut,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
+import logoImg from "@/assets/logo.png";
 
-const menuItems = [
+interface MenuItem {
+  path: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  disabled?: boolean;
+}
+
+const menuItems: MenuItem[] = [
   { path: "/", label: "Visão Geral", icon: BarChart3 },
   { path: "/regional", label: "Regional", icon: MapPin },
   { path: "/clientes", label: "Clientes", icon: Users, disabled: true },
   { path: "/inteligencia", label: "Inteligência", icon: Brain, disabled: true },
+];
+
+const adminMenuItems: MenuItem[] = [
+  { path: "/usuarios", label: "Usuários", icon: Shield },
 ];
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -30,11 +42,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { signOut } = useAuth();
+  const { isAdmin } = useUserRole();
 
   const handleLogout = async () => {
     await signOut();
     navigate("/login");
   };
+
+  // Combine menu items based on role
+  const allMenuItems = isAdmin ? [...menuItems, ...adminMenuItems] : menuItems;
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -57,7 +73,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           {/* Logo */}
           <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
             <div className="flex items-center gap-2 animate-fade-in">
-              <TrendingUp className="h-6 w-6 text-primary" />
+              <img src={logoImg} alt="HM Rubber" className="h-8 w-8 object-contain" />
               <span className="text-lg font-bold text-sidebar-foreground">HM Rubber</span>
             </div>
             <Button
@@ -72,7 +88,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1">
-            {menuItems.map((item, index) => {
+            {allMenuItems.map((item, index) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
               
@@ -126,7 +142,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
+            <img src={logoImg} alt="HM Rubber" className="h-6 w-6 object-contain" />
             <span className="font-bold">HM Rubber</span>
           </div>
           <div className="w-10" /> {/* Spacer */}

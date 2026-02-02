@@ -10,10 +10,20 @@ export function useAuth() {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Update last_sign_in_at when user signs in
+        if (_event === "SIGNED_IN" && session?.user) {
+          setTimeout(async () => {
+            await supabase
+              .from("profiles")
+              .update({ last_sign_in_at: new Date().toISOString() })
+              .eq("user_id", session.user.id);
+          }, 0);
+        }
       }
     );
 
