@@ -155,13 +155,13 @@ export default function VisaoRegional() {
     }
   }, [estadoSelecionado, dadosProcessados, granularidade]);
 
-  // Top produtos e clientes do local selecionado
+  // Top produtos e clientes do local selecionado (top 5 para o painel lateral)
   const topProdutos = useMemo(() => {
     if (!estadoSelecionado || !dadosProcessados) return [];
     return calcularTopProdutosPorLocal(dadosProcessados.dados, {
       tipo: granularidade,
       valor: estadoSelecionado,
-    });
+    }, 5);
   }, [estadoSelecionado, dadosProcessados, granularidade]);
 
   const topClientes = useMemo(() => {
@@ -169,7 +169,33 @@ export default function VisaoRegional() {
     return calcularTopClientesPorLocal(dadosProcessados.dados, {
       tipo: granularidade,
       valor: estadoSelecionado,
+    }, 5);
+  }, [estadoSelecionado, dadosProcessados, granularidade]);
+
+  // Todos os produtos e clientes (para o modal completo)
+  const todosProdutos = useMemo(() => {
+    if (!estadoSelecionado || !dadosProcessados) return [];
+    return calcularTopProdutosPorLocal(dadosProcessados.dados, {
+      tipo: granularidade,
+      valor: estadoSelecionado,
     });
+  }, [estadoSelecionado, dadosProcessados, granularidade]);
+
+  const todosClientes = useMemo(() => {
+    if (!estadoSelecionado || !dadosProcessados) return [];
+    return calcularTopClientesPorLocal(dadosProcessados.dados, {
+      tipo: granularidade,
+      valor: estadoSelecionado,
+    });
+  }, [estadoSelecionado, dadosProcessados, granularidade]);
+
+  // Todos os canais do local selecionado
+  const todosCanais = useMemo(() => {
+    if (!estadoSelecionado || !dadosProcessados) return [];
+    const canaisMap = granularidade === "uf" 
+      ? dadosProcessados.canaisPorUF 
+      : dadosProcessados.canaisPorRegiao;
+    return canaisMap.get(estadoSelecionado) || [];
   }, [estadoSelecionado, dadosProcessados, granularidade]);
 
   const handleEstadoClick = (id: string) => {
@@ -307,6 +333,9 @@ export default function VisaoRegional() {
           dadosEstado={dadosEstadoSelecionado}
           topProdutos={topProdutos}
           topClientes={topClientes}
+          todosProdutos={todosProdutos}
+          todosClientes={todosClientes}
+          todosCanais={todosCanais}
         />
       </div>
     </DashboardLayout>

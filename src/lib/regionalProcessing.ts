@@ -393,7 +393,7 @@ export function calcularCanaisPorRegiao(data: VendaItem[]): Map<string, CanalPor
 export function calcularTopProdutosPorLocal(
   data: VendaItem[],
   filtro: { tipo: "uf" | "regiao"; valor: string },
-  limite = 5
+  limite?: number
 ): { nome: string; valor: number }[] {
   const { vendas, devolucoes } = separarVendasDevolucoes(data);
 
@@ -424,14 +424,15 @@ export function calcularTopProdutosPorLocal(
     resultado.push({ nome, valor });
   });
 
-  return resultado.sort((a, b) => b.valor - a.valor).slice(0, limite);
+  const ordenado = resultado.sort((a, b) => b.valor - a.valor);
+  return limite ? ordenado.slice(0, limite) : ordenado;
 }
 
 // Top clientes de uma UF/Região específica usando Faturamento Líquido
 export function calcularTopClientesPorLocal(
   data: VendaItem[],
   filtro: { tipo: "uf" | "regiao"; valor: string },
-  limite = 5
+  limite?: number
 ): { nome: string; valor: number }[] {
   const { vendas, devolucoes } = separarVendasDevolucoes(data);
 
@@ -462,7 +463,8 @@ export function calcularTopClientesPorLocal(
     resultado.push({ nome, valor });
   });
 
-  return resultado.sort((a, b) => b.valor - a.valor).slice(0, limite);
+  const ordenado = resultado.sort((a, b) => b.valor - a.valor);
+  return limite ? ordenado.slice(0, limite) : ordenado;
 }
 
 // Calcula o range de valores para gradiente de cor

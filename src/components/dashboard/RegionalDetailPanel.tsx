@@ -1,11 +1,11 @@
-import { useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { formatCompactCurrency, formatCurrencyExact, formatPercent, formatNumber } from "@/lib/formatters";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { MapPin, TrendingUp, Package, Receipt, X, Users, ShoppingBag } from "lucide-react";
+import { MapPin, TrendingUp, Package, Receipt, Users, ShoppingBag, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { DadosRegionais } from "@/lib/regionalProcessing";
+import { RegionalFullDetailsModal } from "./RegionalFullDetailsModal";
+import type { DadosRegionais, CanalPorRegiao } from "@/lib/regionalProcessing";
 
 // Nomes dos estados
 const UF_NOMES: Record<string, string> = {
@@ -24,6 +24,9 @@ interface RegionalDetailPanelProps {
   dadosEstado: DadosRegionais | null;
   topProdutos: { nome: string; valor: number }[];
   topClientes: { nome: string; valor: number }[];
+  todosProdutos: { nome: string; valor: number }[];
+  todosClientes: { nome: string; valor: number }[];
+  todosCanais: CanalPorRegiao[];
 }
 
 function MetricaCard({ 
@@ -103,7 +106,12 @@ export function RegionalDetailPanel({
   dadosEstado,
   topProdutos,
   topClientes,
+  todosProdutos,
+  todosClientes,
+  todosCanais,
 }: RegionalDetailPanelProps) {
+  const [isFullDetailsOpen, setIsFullDetailsOpen] = useState(false);
+
   if (!dadosEstado) {
     return null;
   }
@@ -111,72 +119,94 @@ export function RegionalDetailPanel({
   const nomeEstado = UF_NOMES[dadosEstado.uf] || dadosEstado.uf;
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-        <SheetHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-primary" />
-              <SheetTitle>{nomeEstado}</SheetTitle>
+    <>
+      <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-primary" />
+                <SheetTitle>{nomeEstado}</SheetTitle>
+              </div>
             </div>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Região: {dadosEstado.regiao}
-          </p>
-        </SheetHeader>
+            <p className="text-sm text-muted-foreground">
+              Região: {dadosEstado.regiao}
+            </p>
+          </SheetHeader>
 
-        <div className="space-y-6">
-          {/* Métricas principais */}
-          <div className="grid grid-cols-2 gap-3">
-            <MetricaCard
-              titulo="Faturamento"
-              valor={formatCompactCurrency(dadosEstado.faturamento)}
-              valorExato={formatCurrencyExact(dadosEstado.faturamento)}
-              icon={TrendingUp}
-            />
-            <MetricaCard
-              titulo="Margem"
-              valor={formatCompactCurrency(dadosEstado.margem)}
-              valorExato={formatCurrencyExact(dadosEstado.margem)}
-              icon={TrendingUp}
-            />
-            <MetricaCard
-              titulo="Margem %"
-              valor={formatPercent(dadosEstado.margemPercentual)}
-              valorExato={formatPercent(dadosEstado.margemPercentual)}
-              icon={TrendingUp}
-            />
-            <MetricaCard
-              titulo="Quantidade"
-              valor={formatNumber(dadosEstado.quantidade)}
-              valorExato={formatNumber(dadosEstado.quantidade)}
-              icon={Package}
-            />
-            <div className="col-span-2">
+          <div className="space-y-6">
+            {/* Botão Informações Completas */}
+            <Button 
+              onClick={() => setIsFullDetailsOpen(true)}
+              className="w-full gap-2"
+              size="lg"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Informações Completas
+            </Button>
+
+            {/* Métricas principais */}
+            <div className="grid grid-cols-2 gap-3">
               <MetricaCard
-                titulo="Notas Emitidas"
-                valor={formatNumber(dadosEstado.notas)}
-                valorExato={formatNumber(dadosEstado.notas)}
-                icon={Receipt}
+                titulo="Faturamento"
+                valor={formatCompactCurrency(dadosEstado.faturamento)}
+                valorExato={formatCurrencyExact(dadosEstado.faturamento)}
+                icon={TrendingUp}
               />
+              <MetricaCard
+                titulo="Margem"
+                valor={formatCompactCurrency(dadosEstado.margem)}
+                valorExato={formatCurrencyExact(dadosEstado.margem)}
+                icon={TrendingUp}
+              />
+              <MetricaCard
+                titulo="Margem %"
+                valor={formatPercent(dadosEstado.margemPercentual)}
+                valorExato={formatPercent(dadosEstado.margemPercentual)}
+                icon={TrendingUp}
+              />
+              <MetricaCard
+                titulo="Quantidade"
+                valor={formatNumber(dadosEstado.quantidade)}
+                valorExato={formatNumber(dadosEstado.quantidade)}
+                icon={Package}
+              />
+              <div className="col-span-2">
+                <MetricaCard
+                  titulo="Notas Emitidas"
+                  valor={formatNumber(dadosEstado.notas)}
+                  valorExato={formatNumber(dadosEstado.notas)}
+                  icon={Receipt}
+                />
+              </div>
             </div>
+
+            {/* Top Produtos */}
+            <TopList
+              titulo="Top 5 Produtos"
+              items={topProdutos}
+              icon={ShoppingBag}
+            />
+
+            {/* Top Clientes */}
+            <TopList
+              titulo="Top 5 Clientes"
+              items={topClientes}
+              icon={Users}
+            />
           </div>
+        </SheetContent>
+      </Sheet>
 
-          {/* Top Produtos */}
-          <TopList
-            titulo="Top 5 Produtos"
-            items={topProdutos}
-            icon={ShoppingBag}
-          />
-
-          {/* Top Clientes */}
-          <TopList
-            titulo="Top 5 Clientes"
-            items={topClientes}
-            icon={Users}
-          />
-        </div>
-      </SheetContent>
-    </Sheet>
+      {/* Modal de Informações Completas */}
+      <RegionalFullDetailsModal
+        isOpen={isFullDetailsOpen}
+        onClose={() => setIsFullDetailsOpen(false)}
+        dadosEstado={dadosEstado}
+        todosProdutos={todosProdutos}
+        todosClientes={todosClientes}
+        todosCanais={todosCanais}
+      />
+    </>
   );
 }
