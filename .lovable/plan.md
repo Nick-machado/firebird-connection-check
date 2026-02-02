@@ -1,95 +1,105 @@
 
+# Plano: Corrigir Busca de Dados para Evitar Truncamento
 
-# Plano: Simplificar Gráfico e Adicionar Tooltip com Valor Exato
+## Problema Identificado
 
-## Resumo
-
-Vou fazer duas melhorias:
-1. **Gráfico**: Mostrar apenas valores líquidos (remover linhas de Bruto)
-2. **KPI Cards**: Adicionar tooltip que mostra o valor exato sem arredondamento ao passar o mouse
+A API está truncando os dados quando o período de busca é muito grande (ano inteiro). Ao buscar de `01/01/2026` a `31/12/2026`, a API retorna apenas uma parte dos registros, resultando em R$ 683.005,46 em vez dos R$ 3.7M esperados.
 
 ---
 
-## Alterações
+## Solucao
 
-### 1. Simplificar Gráfico de Faturamento Mensal
-
-**Arquivo:** `src/components/dashboard/FaturamentoMensalChart.tsx`
-
-Remover as linhas de "Bruto" e manter apenas as de "Líquido":
-
-- Remover `${anoAtual} Bruto` e `${anoAnterior} Bruto` do chartData
-- Remover os componentes `<Line>` de Bruto (linhas 70-78 e 89-99)
-- Manter apenas as linhas de Líquido para o ano atual e anterior
-- Atualizar o título para "Comparativo Mensal de Faturamento Líquido"
-
-**Resultado visual:** Gráfico mais limpo com apenas 2 linhas (ano atual vs anterior)
+Modificar a estrategia de busca para fazer requisicoes **mes a mes** em paralelo, garantindo que todos os dados sejam retornados corretamente.
 
 ---
 
-### 2. Adicionar Tooltip nos KPI Cards
+## Alteracoes Tecnicas
 
-**Arquivo:** `src/components/dashboard/KPICard.tsx`
+### 1. Modificar Hook `useVendasDoisAnos`
 
-Adicionar um tooltip que mostra o valor exato quando o usuário passa o mouse:
+**Arquivo:** `src/hooks/useVendas.ts`
 
-- Importar componentes de Tooltip do Radix UI
-- Envolver o valor formatado em um `<Tooltip>`
-- Mostrar o valor completo (formatCurrency) no tooltip
-- Funciona para todos os formatos: currency, compact, percent, number
+Alterar a funcao para buscar os 12 meses individualmente em paralelo:
 
-**Exemplo de interação:**
-- Card mostra: `R$ 3,8M` (formato compacto)
-- Tooltip mostra: `R$ 3.807.419,39` (valor exato)
+```text
+Antes (busca ano inteiro - trunca):
+  fetchVendas("01/01/2026", "31/12/2026")
+
+Depois (busca mes a mes - sem truncamento):
+  Promise.all([
+    fetchVendas("01/01/2026", "31/01/2026"),
+    fetchVendas("01/02/2026", "28/02/2026"),
+    fetchVendas("01/03/2026", "31/03/2026"),
+    ... (12 meses)
+  ])
+```
+
+Beneficios:
+- Evita limite de registros da API
+- Requisicoes em paralelo mantem performance
+- Dados completos para cada mes
+
+### 2. Funcao Auxiliar para Ultimo Dia do Mes
+
+Criar funcao que retorna o ultimo dia de cada mes considerando anos bissextos:
+
+| Mes | Ultimo Dia |
+|-----|------------|
+| Jan | 31         |
+| Fev | 28 ou 29   |
+| Mar | 31         |
+| Abr | 30         |
+| Mai | 31         |
+| Jun | 30         |
+| Jul | 31         |
+| Ago | 31         |
+| Set | 30         |
+| Out | 31         |
+| Nov | 30         |
+| Dez | 31         |
+
+---
+
+## Fluxo de Busca
+
+```text
++-------------------+
+|  Seleciona Ano    |
+|     (2026)        |
++--------+----------+
+         |
+         v
++--------+----------+
+| 24 Requisicoes    |
+| em Paralelo       |
+| (12 meses x 2 anos)|
++--------+----------+
+         |
+         v
++--------+----------+
+| Combina Resultados|
+| em Array Unico    |
++--------+----------+
+         |
+         v
++--------+----------+
+| Filtro Local      |
+| (Mes/Equipe)      |
++-------------------+
+```
 
 ---
 
 ## Arquivos Afetados
 
-| Arquivo | Alteração |
+| Arquivo | Alteracao |
 |---------|-----------|
-| `src/components/dashboard/FaturamentoMensalChart.tsx` | Remover linhas de Bruto |
-| `src/components/dashboard/KPICard.tsx` | Adicionar Tooltip com valor exato |
+| `src/hooks/useVendas.ts` | Modificar busca para mes a mes |
 
 ---
 
-## Detalhes Técnicos
+## Resultado Esperado
 
-### Novo formatador para valores exatos
-
-Vou criar uma função `formatCurrencyExact` em `src/lib/formatters.ts` que formata moeda com todas as casas decimais:
-
-```typescript
-export function formatCurrencyExact(value: number): string {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-}
-```
-
-### Estrutura do Tooltip no KPICard
-
-```tsx
-<Tooltip>
-  <TooltipTrigger asChild>
-    <span className="text-2xl font-bold text-foreground cursor-help">
-      {formattedValue}
-    </span>
-  </TooltipTrigger>
-  <TooltipContent>
-    <p>{exactValue}</p>
-  </TooltipContent>
-</Tooltip>
-```
-
----
-
-## Benefícios
-
-- Gráfico mais limpo e fácil de ler
-- Acesso fácil ao valor exato sem precisar exportar dados
-- Melhor experiência do usuário para análises precisas
-
+- Janeiro 2026 mostrara os R$ 3.7M corretos
+- Todos os meses terao dados completos
+- Performance mantida com requisicoes paralelas
