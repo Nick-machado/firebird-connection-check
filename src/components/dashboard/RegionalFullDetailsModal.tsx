@@ -276,42 +276,44 @@ export function RegionalFullDetailsModal({
         </div>
 
         {/* Tabs com listas completas */}
-        <Tabs defaultValue="produtos" className="flex-1 flex flex-col min-h-0">
+        <Tabs defaultValue="produtos" className="flex-1 min-h-0">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="produtos" className="gap-2">
+            <TabsTrigger value="produtos" className="gap-1 text-xs sm:text-sm">
               <ShoppingBag className="h-4 w-4" />
               <span className="hidden sm:inline">Produtos</span>
               <span className="text-xs text-muted-foreground">({produtos.length})</span>
             </TabsTrigger>
-            <TabsTrigger value="clientes" className="gap-2">
+            <TabsTrigger value="clientes" className="gap-1 text-xs sm:text-sm">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Clientes</span>
               <span className="text-xs text-muted-foreground">({clientes.length})</span>
             </TabsTrigger>
-            <TabsTrigger value="canais" className="gap-2">
+            <TabsTrigger value="canais" className="gap-1 text-xs sm:text-sm">
               <Store className="h-4 w-4" />
               <span className="hidden sm:inline">Canais</span>
               <span className="text-xs text-muted-foreground">({canais.length})</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="produtos" className="flex-1 mt-4">
-            <ListaCompleta
-              items={produtos}
-              searchPlaceholder="Buscar produto..."
-            />
-          </TabsContent>
+          <div className="mt-4">
+            <TabsContent value="produtos" className="mt-0 data-[state=active]:block">
+              <ListaCompleta
+                items={produtos}
+                searchPlaceholder="Buscar produto..."
+              />
+            </TabsContent>
 
-          <TabsContent value="clientes" className="flex-1 mt-4">
-            <ListaCompleta
-              items={clientes}
-              searchPlaceholder="Buscar cliente..."
-            />
-          </TabsContent>
+            <TabsContent value="clientes" className="mt-0 data-[state=active]:block">
+              <ListaCompleta
+                items={clientes}
+                searchPlaceholder="Buscar cliente..."
+              />
+            </TabsContent>
 
-          <TabsContent value="canais" className="flex-1 mt-4">
-            <ListaCanais canais={canais} />
-          </TabsContent>
+            <TabsContent value="canais" className="mt-0 data-[state=active]:block">
+              <ListaCanais canais={canais} />
+            </TabsContent>
+          </div>
         </Tabs>
       </DialogContent>
     </Dialog>
