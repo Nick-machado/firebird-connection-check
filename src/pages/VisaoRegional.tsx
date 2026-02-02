@@ -4,6 +4,8 @@ import { FiltrosVendas } from "@/components/dashboard/FiltrosVendas";
 import { BrazilMap } from "@/components/dashboard/BrazilMap";
 import { RegionalTable } from "@/components/dashboard/RegionalTable";
 import { RegionalDetailPanel } from "@/components/dashboard/RegionalDetailPanel";
+import { RegionalChannelsChart } from "@/components/dashboard/RegionalChannelsChart";
+import { RegionalVariationCard } from "@/components/dashboard/RegionalVariationCard";
 import { useVendasDoisAnos } from "@/hooks/useVendas";
 import { useUserRole } from "@/hooks/useUserRole";
 import { filtrarPorEquipe, filtrarPorMes } from "@/lib/dataProcessing";
@@ -13,6 +15,10 @@ import {
   calcularDadosPorRegiao,
   calcularTopProdutosPorLocal,
   calcularTopClientesPorLocal,
+  calcularVariacoesPorUF,
+  calcularVariacoesPorRegiao,
+  calcularCanaisPorUF,
+  calcularCanaisPorRegiao,
   type DadosRegionais,
 } from "@/lib/regionalProcessing";
 import { Loader2, Map, BarChart3 } from "lucide-react";
@@ -55,31 +61,87 @@ export default function VisaoRegional() {
   // Busca dados
   const { data: vendasData, isLoading, error } = useVendasDoisAnos(ano);
 
-  // Processa os dados regionais
+  // Helper para filtrar dados por setor
+  const filtrarPorSetor = (dados: typeof vendasData.anoAtual.data) => {
+    if (sector && SECTOR_TO_EQUIPES[sector]) {
+      const allowedEquipes = SECTOR_TO_EQUIPES[sector];
+      return dados.filter(
+        (v) => allowedEquipes.some((eq) => v.Equipe?.toUpperCase().includes(eq.toUpperCase()))
+      );
+    }
+    return filtrarPorEquipe(dados, equipe);
+  };
+
+  // Processa os dados regionais com variações
   const dadosProcessados = useMemo(() => {
     if (!vendasData) return null;
 
-    let dados = vendasData.anoAtual.data;
+    // Dados do mês atual
+    let dadosMesAtual = filtrarPorSetor(vendasData.anoAtual.data);
+    dadosMesAtual = filtrarPorMes(dadosMesAtual, mes);
 
-    // Apply sector-based filtering if user has restrictions
-    if (sector && SECTOR_TO_EQUIPES[sector]) {
-      const allowedEquipes = SECTOR_TO_EQUIPES[sector];
-      dados = dados.filter(
-        (v) => allowedEquipes.some((eq) => v.Equipe?.toUpperCase().includes(eq.toUpperCase()))
-      );
-    } else {
-      dados = filtrarPorEquipe(dados, equipe);
-    }
+    // Dados do mês anterior (mesmo ano ou ano anterior se janeiro)
+    const mesAnterior = mes > 1 ? mes - 1 : 12;
+    const dadosFonteMesAnterior = mes > 1 ? vendasData.anoAtual.data : vendasData.anoAnterior.data;
+    let dadosMesAnterior = filtrarPorSetor(dadosFonteMesAnterior);
+    dadosMesAnterior = filtrarPorMes(dadosMesAnterior, mesAnterior);
 
-    dados = filtrarPorMes(dados, mes);
+    // Dados do mesmo mês do ano anterior
+    let dadosAnoAnterior = filtrarPorSetor(vendasData.anoAnterior.data);
+    dadosAnoAnterior = filtrarPorMes(dadosAnoAnterior, mes);
 
-    const dadosPorUF = calcularDadosPorUF(dados);
-    const dadosPorRegiao = calcularDadosPorRegiao(dados);
+    // Calcular dados base
+    const dadosPorUF = calcularDadosPorUF(dadosMesAtual);
+    const dadosPorRegiao = calcularDadosPorRegiao(dadosMesAtual);
+
+    // Calcular variações
+    const variacoesPorUF = calcularVariacoesPorUF(dadosMesAtual, dadosMesAnterior, dadosAnoAnterior);
+    const variacoesPorRegiao = calcularVariacoesPorRegiao(dadosMesAtual, dadosMesAnterior, dadosAnoAnterior);
+
+    // Adicionar variações aos dados
+    const dadosPorUFComVariacoes = dadosPorUF.map((item) => {
+      const variacoes = variacoesPorUF.get(item.uf);
+      return {
+        ...item,
+        variacaoMoM: variacoes?.variacaoMoM ?? 0,
+        variacaoYoY: variacoes?.variacaoYoY ?? 0,
+      };
+    });
+
+    const dadosPorRegiaoComVariacoes = dadosPorRegiao.map((item) => {
+      const variacoes = variacoesPorRegiao.get(item.nome);
+      return {
+        ...item,
+        variacaoMoM: variacoes?.variacaoMoM ?? 0,
+        variacaoYoY: variacoes?.variacaoYoY ?? 0,
+      };
+    });
+
+    // Calcular canais por região/UF
+    const canaisPorUF = calcularCanaisPorUF(dadosMesAtual);
+    const canaisPorRegiao = calcularCanaisPorRegiao(dadosMesAtual);
+
+    // Calcular variação total
+    const totalAtual = dadosPorUF.reduce((sum, d) => sum + d.faturamento, 0);
+    const totalMesAnterior = calcularDadosPorUF(dadosMesAnterior).reduce((sum, d) => sum + d.faturamento, 0);
+    const totalAnoAnterior = calcularDadosPorUF(dadosAnoAnterior).reduce((sum, d) => sum + d.faturamento, 0);
+
+    const variacaoTotalMoM = totalMesAnterior > 0 
+      ? ((totalAtual - totalMesAnterior) / totalMesAnterior) * 100 
+      : totalAtual > 0 ? 100 : 0;
+    
+    const variacaoTotalYoY = totalAnoAnterior > 0 
+      ? ((totalAtual - totalAnoAnterior) / totalAnoAnterior) * 100 
+      : totalAtual > 0 ? 100 : 0;
 
     return {
-      dados,
-      dadosPorUF,
-      dadosPorRegiao,
+      dados: dadosMesAtual,
+      dadosPorUF: dadosPorUFComVariacoes,
+      dadosPorRegiao: dadosPorRegiaoComVariacoes,
+      canaisPorUF,
+      canaisPorRegiao,
+      variacaoTotalMoM,
+      variacaoTotalYoY,
     };
   }, [vendasData, mes, equipe, sector]);
 
@@ -102,6 +164,8 @@ export default function VisaoRegional() {
         margemPercentual: dadoRegiao.margemPercentual,
         quantidade: dadoRegiao.quantidade,
         notas: dadoRegiao.notas,
+        variacaoMoM: dadoRegiao.variacaoMoM,
+        variacaoYoY: dadoRegiao.variacaoYoY,
       };
     }
   }, [estadoSelecionado, dadosProcessados, granularidade]);
@@ -217,27 +281,47 @@ export default function VisaoRegional() {
         </div>
 
         {dadosProcessados && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Mapa */}
-            <div className="animate-scale-in stagger-3 opacity-0">
-              <BrazilMap
-                dados={dadosProcessados.dadosPorUF}
-                metrica={metrica}
-                onEstadoClick={handleEstadoClick}
-                estadoSelecionado={granularidade === "uf" ? estadoSelecionado : null}
+          <>
+            {/* Variação Total */}
+            <div className="animate-fade-in-up stagger-3 opacity-0">
+              <RegionalVariationCard 
+                titulo="Variação Geográfica Total"
+                variacaoMoM={dadosProcessados.variacaoTotalMoM}
+                variacaoYoY={dadosProcessados.variacaoTotalYoY}
               />
             </div>
 
-            {/* Tabela */}
-            <div className="animate-scale-in stagger-4 opacity-0">
-              <RegionalTable
-                dados={granularidade === "uf" ? dadosProcessados.dadosPorUF : dadosProcessados.dadosPorRegiao}
+            {/* Mapa e Tabela */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="animate-scale-in stagger-4 opacity-0">
+                <BrazilMap
+                  dados={dadosProcessados.dadosPorUF}
+                  metrica={metrica}
+                  onEstadoClick={handleEstadoClick}
+                  estadoSelecionado={granularidade === "uf" ? estadoSelecionado : null}
+                />
+              </div>
+
+              <div className="animate-scale-in stagger-5 opacity-0">
+                <RegionalTable
+                  dados={granularidade === "uf" ? dadosProcessados.dadosPorUF : dadosProcessados.dadosPorRegiao}
+                  tipo={granularidade}
+                  onRowClick={handleEstadoClick}
+                  selecionado={estadoSelecionado}
+                  mostrarVariacoes={true}
+                />
+              </div>
+            </div>
+
+            {/* Gráfico de Canais por Região */}
+            <div className="animate-scale-in stagger-6 opacity-0">
+              <RegionalChannelsChart
+                dados={granularidade === "uf" ? dadosProcessados.canaisPorUF : dadosProcessados.canaisPorRegiao}
                 tipo={granularidade}
-                onRowClick={handleEstadoClick}
                 selecionado={estadoSelecionado}
               />
             </div>
-          </div>
+          </>
         )}
 
         {/* Painel de detalhes */}
