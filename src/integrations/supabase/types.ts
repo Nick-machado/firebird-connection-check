@@ -76,6 +76,7 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"]
       }
       get_user_sector: { Args: { _user_id: string }; Returns: string }
+      has_any_access: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -96,6 +97,7 @@ export type Database = {
         | "industria"
         | "gerente_exportacao"
         | "exportacao"
+        | "sem_acesso"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -233,6 +235,7 @@ export const Constants = {
         "industria",
         "gerente_exportacao",
         "exportacao",
+        "sem_acesso",
       ],
     },
   },
