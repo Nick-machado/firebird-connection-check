@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { FiltrosVendas } from "@/components/dashboard/FiltrosVendas";
 import { KPICard } from "@/components/dashboard/KPICard";
@@ -7,6 +7,7 @@ import { FaturamentoCanalChart } from "@/components/dashboard/FaturamentoCanalCh
 import { TopItemsChart } from "@/components/dashboard/TopItemsChart";
 import { MargemCanalChart } from "@/components/dashboard/MargemCanalChart";
 import { useVendasDoisAnos } from "@/hooks/useVendas";
+import { useUserRole, ROLE_LABELS } from "@/hooks/useUserRole";
 import {
   filtrarPorEquipe,
   filtrarPorMes,
@@ -20,18 +21,35 @@ import {
   calcularFaturamentoPorRegiao,
 } from "@/lib/dataProcessing";
 import { exportarVendasExcel } from "@/lib/exportToExcel";
-import { CHART_COLORS } from "@/lib/constants";
+import { CHART_COLORS, SECTOR_TO_EQUIPES } from "@/lib/constants";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, DollarSign, TrendingDown, Receipt, Package, Percent, Users, BarChart3, FileDown, AlertCircle } from "lucide-react";
+import { Loader2, DollarSign, TrendingDown, Receipt, Package, Percent, BarChart3, FileDown, AlertCircle } from "lucide-react";
+
 export default function VisaoGeral() {
   const anoAtual = new Date().getFullYear();
   const mesAtual = new Date().getMonth() + 1;
 
+  const { sector, canViewAllData, role, roleLabel } = useUserRole();
+
   const [ano, setAno] = useState(anoAtual);
   const [mes, setMes] = useState(mesAtual);
   const [equipe, setEquipe] = useState("TODAS");
+
+  // Set equipe based on user sector on mount
+  useEffect(() => {
+    if (sector && SECTOR_TO_EQUIPES[sector]) {
+      // If user has a sector, set the first allowed equipe
+      const allowedEquipes = SECTOR_TO_EQUIPES[sector];
+      if (allowedEquipes.length === 1) {
+        setEquipe(allowedEquipes[0]);
+      } else if (allowedEquipes.length > 1) {
+        // For exportacao which has multiple, we could set "TODAS" but filter later
+        setEquipe("TODAS");
+      }
+    }
+  }, [sector]);
 
   // Busca dados do ano atual e anterior (query só muda quando ANO muda)
   const { data: vendasData, isLoading, error } = useVendasDoisAnos(ano);
@@ -43,9 +61,36 @@ export default function VisaoGeral() {
     const dadosAnoAtual = vendasData.anoAtual.data;
     const dadosAnoAnterior = vendasData.anoAnterior.data;
 
-    // Aplica filtro de equipe
-    const dadosAnoAtualFiltrados = filtrarPorEquipe(dadosAnoAtual, equipe);
-    const dadosAnoAnteriorFiltrados = filtrarPorEquipe(dadosAnoAnterior, equipe);
+    // If user has a sector restriction, filter by allowed equipes
+    let equipeFilter = equipe;
+    if (sector && SECTOR_TO_EQUIPES[sector]) {
+      const allowedEquipes = SECTOR_TO_EQUIPES[sector];
+      // If current equipe is not in allowed list, use the first allowed
+      if (equipe === "TODAS") {
+        // Filter will be applied per allowed equipe and combined
+        equipeFilter = "SECTOR_FILTER";
+      } else if (!allowedEquipes.includes(equipe)) {
+        equipeFilter = allowedEquipes[0];
+      }
+    }
+
+    // Apply sector-based filtering
+    let dadosAnoAtualFiltrados;
+    let dadosAnoAnteriorFiltrados;
+
+    if (equipeFilter === "SECTOR_FILTER" && sector) {
+      const allowedEquipes = SECTOR_TO_EQUIPES[sector];
+      dadosAnoAtualFiltrados = dadosAnoAtual.filter(
+        (v) => allowedEquipes.some((eq) => v.Equipe?.toUpperCase().includes(eq.toUpperCase()))
+      );
+      dadosAnoAnteriorFiltrados = dadosAnoAnterior.filter(
+        (v) => allowedEquipes.some((eq) => v.Equipe?.toUpperCase().includes(eq.toUpperCase()))
+      );
+    } else {
+      // Regular equipe filter
+      dadosAnoAtualFiltrados = filtrarPorEquipe(dadosAnoAtual, equipeFilter);
+      dadosAnoAnteriorFiltrados = filtrarPorEquipe(dadosAnoAnterior, equipeFilter);
+    }
 
     // Dados do mês selecionado
     const dadosMesFiltrados = filtrarPorMes(dadosAnoAtualFiltrados, mes);
@@ -89,7 +134,7 @@ export default function VisaoGeral() {
       margemPorCanal,
       faturamentoPorRegiao,
     };
-  }, [vendasData, ano, mes, equipe]);
+  }, [vendasData, ano, mes, equipe, sector]);
 
   if (isLoading) {
     return (
@@ -164,6 +209,8 @@ export default function VisaoGeral() {
             onMesChange={setMes}
             onEquipeChange={setEquipe}
             mesAtualMax={ano === anoAtual ? mesAtual : 12}
+            sectorLocked={!canViewAllData && !!sector}
+            sectorLabel={roleLabel}
           />
         </div>
 

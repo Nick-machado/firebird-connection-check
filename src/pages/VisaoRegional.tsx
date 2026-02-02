@@ -1,11 +1,13 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { FiltrosVendas } from "@/components/dashboard/FiltrosVendas";
 import { BrazilMap } from "@/components/dashboard/BrazilMap";
 import { RegionalTable } from "@/components/dashboard/RegionalTable";
 import { RegionalDetailPanel } from "@/components/dashboard/RegionalDetailPanel";
 import { useVendasDoisAnos } from "@/hooks/useVendas";
+import { useUserRole } from "@/hooks/useUserRole";
 import { filtrarPorEquipe, filtrarPorMes } from "@/lib/dataProcessing";
+import { SECTOR_TO_EQUIPES } from "@/lib/constants";
 import {
   calcularDadosPorUF,
   calcularDadosPorRegiao,
@@ -25,10 +27,22 @@ export default function VisaoRegional() {
   const anoAtual = new Date().getFullYear();
   const mesAtual = new Date().getMonth() + 1;
 
+  const { sector, canViewAllData, roleLabel } = useUserRole();
+
   // Filtros gerais
   const [ano, setAno] = useState(anoAtual);
   const [mes, setMes] = useState(mesAtual);
   const [equipe, setEquipe] = useState("TODAS");
+
+  // Set equipe based on user sector on mount
+  useEffect(() => {
+    if (sector && SECTOR_TO_EQUIPES[sector]) {
+      const allowedEquipes = SECTOR_TO_EQUIPES[sector];
+      if (allowedEquipes.length === 1) {
+        setEquipe(allowedEquipes[0]);
+      }
+    }
+  }, [sector]);
 
   // Configurações do mapa
   const [metrica, setMetrica] = useState<Metrica>("faturamento");
@@ -46,7 +60,17 @@ export default function VisaoRegional() {
     if (!vendasData) return null;
 
     let dados = vendasData.anoAtual.data;
-    dados = filtrarPorEquipe(dados, equipe);
+
+    // Apply sector-based filtering if user has restrictions
+    if (sector && SECTOR_TO_EQUIPES[sector]) {
+      const allowedEquipes = SECTOR_TO_EQUIPES[sector];
+      dados = dados.filter(
+        (v) => allowedEquipes.some((eq) => v.Equipe?.toUpperCase().includes(eq.toUpperCase()))
+      );
+    } else {
+      dados = filtrarPorEquipe(dados, equipe);
+    }
+
     dados = filtrarPorMes(dados, mes);
 
     const dadosPorUF = calcularDadosPorUF(dados);
@@ -57,7 +81,7 @@ export default function VisaoRegional() {
       dadosPorUF,
       dadosPorRegiao,
     };
-  }, [vendasData, mes, equipe]);
+  }, [vendasData, mes, equipe, sector]);
 
   // Dados do estado selecionado
   const dadosEstadoSelecionado = useMemo((): DadosRegionais | null => {
@@ -154,6 +178,8 @@ export default function VisaoRegional() {
             onMesChange={setMes}
             onEquipeChange={setEquipe}
             mesAtualMax={ano === anoAtual ? mesAtual : 12}
+            sectorLocked={!canViewAllData && !!sector}
+            sectorLabel={roleLabel}
           />
         </div>
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { useUserRole, AppRole } from "@/hooks/useUserRole";
+import { useUserRole, AppRole, ROLE_LABELS } from "@/hooks/useUserRole";
 import { Navigate } from "react-router-dom";
 import {
   Table,
@@ -35,6 +35,32 @@ interface UserWithRole {
   role: AppRole;
   role_id: string;
 }
+
+const ALL_ROLES: AppRole[] = [
+  "admin",
+  "consultor",
+  "gerente_varejo",
+  "varejo",
+  "gerente_industria",
+  "industria",
+  "gerente_exportacao",
+  "exportacao",
+];
+
+const getRoleBadgeVariant = (role: AppRole) => {
+  switch (role) {
+    case "admin":
+      return "default";
+    case "consultor":
+      return "outline";
+    case "gerente_varejo":
+    case "gerente_industria":
+    case "gerente_exportacao":
+      return "secondary";
+    default:
+      return "outline";
+  }
+};
 
 export default function Usuarios() {
   const { isAdmin, loading: roleLoading } = useUserRole();
@@ -73,7 +99,7 @@ export default function Usuarios() {
           avatar_url: profile.avatar_url,
           created_at: profile.created_at,
           last_sign_in_at: profile.last_sign_in_at,
-          role: (userRole?.role as AppRole) || "user",
+          role: (userRole?.role as AppRole) || "varejo",
           role_id: userRole?.id || "",
         };
       });
@@ -109,7 +135,7 @@ export default function Usuarios() {
 
       toast({
         title: "Permissão atualizada",
-        description: `Usuário agora é ${newRole === "admin" ? "Administrador" : "Usuário"}`,
+        description: `Usuário agora é ${ROLE_LABELS[newRole]}`,
       });
     } catch (error) {
       console.error("Error updating role:", error);
@@ -149,8 +175,15 @@ export default function Usuarios() {
     return <Navigate to="/" replace />;
   }
 
-  const adminCount = users.filter((u) => u.role === "admin").length;
-  const userCount = users.filter((u) => u.role === "user").length;
+  // Group users by sector for stats
+  const stats = {
+    total: users.length,
+    admin: users.filter((u) => u.role === "admin").length,
+    consultor: users.filter((u) => u.role === "consultor").length,
+    varejo: users.filter((u) => ["gerente_varejo", "varejo"].includes(u.role)).length,
+    industria: users.filter((u) => ["gerente_industria", "industria"].includes(u.role)).length,
+    exportacao: users.filter((u) => ["gerente_exportacao", "exportacao"].includes(u.role)).length,
+  };
 
   return (
     <DashboardLayout>
@@ -166,40 +199,72 @@ export default function Usuarios() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total de Usuários
+              <CardTitle className="text-xs font-medium text-muted-foreground">
+                Total
               </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{users.length}</div>
+              <div className="text-2xl font-bold">{stats.total}</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Administradores
+              <CardTitle className="text-xs font-medium text-muted-foreground">
+                Admins
               </CardTitle>
               <Shield className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-primary">{adminCount}</div>
+              <div className="text-2xl font-bold text-primary">{stats.admin}</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Usuários Comuns
+              <CardTitle className="text-xs font-medium text-muted-foreground">
+                Consultores
               </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{userCount}</div>
+              <div className="text-2xl font-bold">{stats.consultor}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-blue-500">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground">
+                Varejo
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.varejo}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-green-500">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground">
+                Indústria
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.industria}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-orange-500">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground">
+                Exportação
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.exportacao}</div>
             </CardContent>
           </Card>
         </div>
@@ -256,30 +321,25 @@ export default function Usuarios() {
                           }
                           disabled={updating === user.user_id}
                         >
-                          <SelectTrigger className="w-36">
+                          <SelectTrigger className="w-44">
                             {updating === user.user_id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                               <SelectValue>
-                                <Badge
-                                  variant={
-                                    user.role === "admin"
-                                      ? "default"
-                                      : "secondary"
-                                  }
-                                >
-                                  {user.role === "admin" ? "Admin" : "Usuário"}
+                                <Badge variant={getRoleBadgeVariant(user.role)}>
+                                  {ROLE_LABELS[user.role]}
                                 </Badge>
                               </SelectValue>
                             )}
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="admin">
-                              <Badge variant="default">Admin</Badge>
-                            </SelectItem>
-                            <SelectItem value="user">
-                              <Badge variant="secondary">Usuário</Badge>
-                            </SelectItem>
+                            {ALL_ROLES.map((r) => (
+                              <SelectItem key={r} value={r}>
+                                <Badge variant={getRoleBadgeVariant(r)}>
+                                  {ROLE_LABELS[r]}
+                                </Badge>
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </TableCell>
