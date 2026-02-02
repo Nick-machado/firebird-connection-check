@@ -37,6 +37,7 @@ interface UserWithRole {
 }
 
 const ALL_ROLES: AppRole[] = [
+  "sem_acesso",
   "admin",
   "consultor",
   "gerente_varejo",
@@ -57,6 +58,8 @@ const getRoleBadgeVariant = (role: AppRole) => {
     case "gerente_industria":
     case "gerente_exportacao":
       return "secondary";
+    case "sem_acesso":
+      return "destructive";
     default:
       return "outline";
   }
@@ -99,7 +102,7 @@ export default function Usuarios() {
           avatar_url: profile.avatar_url,
           created_at: profile.created_at,
           last_sign_in_at: profile.last_sign_in_at,
-          role: (userRole?.role as AppRole) || "varejo",
+          role: (userRole?.role as AppRole) || "sem_acesso",
           role_id: userRole?.id || "",
         };
       });
@@ -178,6 +181,7 @@ export default function Usuarios() {
   // Group users by sector for stats
   const stats = {
     total: users.length,
+    semAcesso: users.filter((u) => u.role === "sem_acesso").length,
     admin: users.filter((u) => u.role === "admin").length,
     consultor: users.filter((u) => u.role === "consultor").length,
     varejo: users.filter((u) => ["gerente_varejo", "varejo"].includes(u.role)).length,
@@ -199,7 +203,7 @@ export default function Usuarios() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xs font-medium text-muted-foreground">
@@ -209,6 +213,17 @@ export default function Usuarios() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.total}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-destructive">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground">
+                Sem Acessos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-destructive">{stats.semAcesso}</div>
             </CardContent>
           </Card>
 

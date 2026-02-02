@@ -10,7 +10,8 @@ export type AppRole =
   | "gerente_industria" 
   | "industria" 
   | "gerente_exportacao" 
-  | "exportacao";
+  | "exportacao"
+  | "sem_acesso";
 
 export type Sector = "varejo" | "industria" | "exportacao" | null;
 
@@ -23,6 +24,7 @@ export const ROLE_LABELS: Record<AppRole, string> = {
   industria: "Indústria",
   gerente_exportacao: "Gerente Exportação",
   exportacao: "Exportação",
+  sem_acesso: "Sem Acessos",
 };
 
 export const SECTOR_FROM_ROLE: Record<AppRole, Sector> = {
@@ -34,6 +36,7 @@ export const SECTOR_FROM_ROLE: Record<AppRole, Sector> = {
   industria: "industria",
   gerente_exportacao: "exportacao",
   exportacao: "exportacao",
+  sem_acesso: null,
 };
 
 export function useUserRole() {
@@ -60,13 +63,13 @@ export function useUserRole() {
 
         if (error) {
           console.error("Error fetching role:", error);
-          setRole("varejo"); // Default to varejo
+          setRole("sem_acesso"); // Default to no access
         } else {
-          setRole((data?.role as AppRole) || "varejo");
+          setRole((data?.role as AppRole) || "sem_acesso");
         }
       } catch (err) {
         console.error("Error:", err);
-        setRole("varejo");
+        setRole("sem_acesso");
       } finally {
         setLoading(false);
       }
@@ -76,6 +79,9 @@ export function useUserRole() {
   }, [user, authLoading]);
 
   const sector = role ? SECTOR_FROM_ROLE[role] : null;
+  
+  // Has any access (not sem_acesso)
+  const hasAccess = role !== null && role !== "sem_acesso";
   
   // Can view all data (admin or consultor)
   const canViewAllData = role === "admin" || role === "consultor";
@@ -93,6 +99,7 @@ export function useUserRole() {
     isConsultor: role === "consultor",
     isManager,
     canViewAllData,
+    hasAccess,
     sector,
     roleLabel: role ? ROLE_LABELS[role] : "",
   };
