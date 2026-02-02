@@ -1,7 +1,8 @@
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { formatCompactCurrency, formatCurrencyExact } from "@/lib/formatters";
+import { formatCompactCurrency, formatCurrencyExact, formatNumber, formatPercent } from "@/lib/formatters";
 import type { DadosRegionais, DadosAgrupados } from "@/lib/regionalProcessing";
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
@@ -17,15 +18,51 @@ const UF_NOMES: Record<string, string> = {
   SE: "Sergipe", SP: "São Paulo", TO: "Tocantins",
 };
 
+type Metrica = "faturamento" | "margem" | "quantidade";
+
+const METRICA_LABELS: Record<Metrica, string> = {
+  faturamento: "Faturamento",
+  margem: "Margem",
+  quantidade: "Quantidade",
+};
+
 interface RegionalTableProps {
   dados: DadosRegionais[] | DadosAgrupados[];
   tipo: "uf" | "regiao";
+  metrica: Metrica;
   onRowClick: (id: string) => void;
   selecionado: string | null;
 }
 
-export function RegionalTable({ dados, tipo, onRowClick, selecionado }: RegionalTableProps) {
+export function RegionalTable({ dados, tipo, metrica, onRowClick, selecionado }: RegionalTableProps) {
   const titulo = tipo === "uf" ? "Ranking por Estado" : "Ranking por Região";
+
+  // Ordena dados pela métrica selecionada
+  const dadosOrdenados = useMemo(() => {
+    return [...dados].sort((a, b) => b[metrica] - a[metrica]);
+  }, [dados, metrica]);
+
+  // Formata o valor de acordo com a métrica
+  const formatarValor = (item: DadosRegionais | DadosAgrupados) => {
+    if (metrica === "quantidade") {
+      return formatNumber(item.quantidade);
+    }
+    if (metrica === "margem") {
+      return `${formatCompactCurrency(item.margem)} (${formatPercent(item.margemPercentual)})`;
+    }
+    return formatCompactCurrency(item.faturamento);
+  };
+
+  // Formata o valor exato para tooltip
+  const formatarValorExato = (item: DadosRegionais | DadosAgrupados) => {
+    if (metrica === "quantidade") {
+      return formatNumber(item.quantidade);
+    }
+    if (metrica === "margem") {
+      return formatCurrencyExact(item.margem);
+    }
+    return formatCurrencyExact(item.faturamento);
+  };
 
   return (
     <Card>
@@ -40,12 +77,12 @@ export function RegionalTable({ dados, tipo, onRowClick, selecionado }: Regional
               <TableRow>
                 <TableHead className="w-12">#</TableHead>
                 <TableHead>{tipo === "uf" ? "Estado" : "Região"}</TableHead>
-                <TableHead className="text-right">Faturamento</TableHead>
+                <TableHead className="text-right">{METRICA_LABELS[metrica]}</TableHead>
                 <TableHead className="w-8"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {dados.map((item, idx) => {
+              {dadosOrdenados.map((item, idx) => {
                 const id = tipo === "uf" ? (item as DadosRegionais).uf : (item as DadosAgrupados).nome;
                 const nome = tipo === "uf" 
                   ? UF_NOMES[(item as DadosRegionais).uf] || (item as DadosRegionais).uf
@@ -70,11 +107,11 @@ export function RegionalTable({ dados, tipo, onRowClick, selecionado }: Regional
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <span className="cursor-help font-semibold text-primary">
-                            {formatCompactCurrency(item.faturamento)}
+                            {formatarValor(item)}
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>{formatCurrencyExact(item.faturamento)}</p>
+                          <p>{formatarValorExato(item)}</p>
                         </TooltipContent>
                       </Tooltip>
                     </TableCell>
