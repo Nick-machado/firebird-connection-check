@@ -66,29 +66,32 @@ export function getRegiaoFromUF(uf: string): string {
   return UF_REGIAO[uf.trim().toUpperCase()] || "Outros";
 }
 
-// Calcula dados por UF
+// Calcula dados por UF usando Faturamento Líquido (vendas - devoluções)
 export function calcularDadosPorUF(data: VendaItem[]): DadosRegionais[] {
-  const { vendas } = separarVendasDevolucoes(data);
+  const { vendas, devolucoes } = separarVendasDevolucoes(data);
 
   const porUF = new Map<string, {
-    faturamento: number;
+    faturamentoVendas: number;
+    faturamentoDevolucoes: number;
     margem: number;
     quantidade: number;
     notas: Set<string>;
     regiao: string;
   }>();
 
+  // Processa vendas
   vendas.forEach((item) => {
     const uf = item.UF?.trim().toUpperCase() || "XX";
     const atual = porUF.get(uf) || {
-      faturamento: 0,
+      faturamentoVendas: 0,
+      faturamentoDevolucoes: 0,
       margem: 0,
       quantidade: 0,
       notas: new Set(),
       regiao: getRegiaoFromUF(uf),
     };
 
-    atual.faturamento += item["Total NF"] || 0;
+    atual.faturamentoVendas += item["Total NF"] || 0;
     atual.margem += item["$ Margem"] || 0;
     atual.quantidade += item["Quant."] || 0;
     if (item.Nota) atual.notas.add(item.Nota.trim());
@@ -96,14 +99,32 @@ export function calcularDadosPorUF(data: VendaItem[]): DadosRegionais[] {
     porUF.set(uf, atual);
   });
 
+  // Processa devoluções
+  devolucoes.forEach((item) => {
+    const uf = item.UF?.trim().toUpperCase() || "XX";
+    const atual = porUF.get(uf) || {
+      faturamentoVendas: 0,
+      faturamentoDevolucoes: 0,
+      margem: 0,
+      quantidade: 0,
+      notas: new Set(),
+      regiao: getRegiaoFromUF(uf),
+    };
+
+    atual.faturamentoDevolucoes += Math.abs(item["Total NF"] || 0);
+    
+    porUF.set(uf, atual);
+  });
+
   const resultado: DadosRegionais[] = [];
   porUF.forEach((dados, uf) => {
+    const faturamentoLiquido = dados.faturamentoVendas - dados.faturamentoDevolucoes;
     resultado.push({
       uf,
       regiao: dados.regiao,
-      faturamento: dados.faturamento,
+      faturamento: faturamentoLiquido,
       margem: dados.margem,
-      margemPercentual: dados.faturamento > 0 ? (dados.margem / dados.faturamento) * 100 : 0,
+      margemPercentual: faturamentoLiquido > 0 ? (dados.margem / faturamentoLiquido) * 100 : 0,
       quantidade: dados.quantidade,
       notas: dados.notas.size,
     });
@@ -154,27 +175,33 @@ export function calcularDadosPorRegiao(data: VendaItem[]): DadosAgrupados[] {
   return resultado.sort((a, b) => b.faturamento - a.faturamento);
 }
 
-// Calcula variações MoM e YoY por UF
+// Calcula faturamento líquido por UF (usado nas variações)
+function calcularFaturamentoLiquidoPorUF(data: VendaItem[]): Map<string, number> {
+  const { vendas, devolucoes } = separarVendasDevolucoes(data);
+  const resultado = new Map<string, number>();
+
+  vendas.forEach((item) => {
+    const uf = item.UF?.trim().toUpperCase() || "XX";
+    resultado.set(uf, (resultado.get(uf) || 0) + (item["Total NF"] || 0));
+  });
+
+  devolucoes.forEach((item) => {
+    const uf = item.UF?.trim().toUpperCase() || "XX";
+    resultado.set(uf, (resultado.get(uf) || 0) - Math.abs(item["Total NF"] || 0));
+  });
+
+  return resultado;
+}
+
+// Calcula variações MoM e YoY por UF usando Faturamento Líquido
 export function calcularVariacoesPorUF(
   dadosAtual: VendaItem[],
   dadosMesAnterior: VendaItem[],
   dadosAnoAnterior: VendaItem[]
 ): Map<string, { variacaoMoM: number; variacaoYoY: number }> {
-  const faturamentoAtual = new Map<string, number>();
-  const faturamentoMesAnterior = new Map<string, number>();
-  const faturamentoAnoAnterior = new Map<string, number>();
-
-  const processarDados = (data: VendaItem[], mapa: Map<string, number>) => {
-    const { vendas } = separarVendasDevolucoes(data);
-    vendas.forEach((item) => {
-      const uf = item.UF?.trim().toUpperCase() || "XX";
-      mapa.set(uf, (mapa.get(uf) || 0) + (item["Total NF"] || 0));
-    });
-  };
-
-  processarDados(dadosAtual, faturamentoAtual);
-  processarDados(dadosMesAnterior, faturamentoMesAnterior);
-  processarDados(dadosAnoAnterior, faturamentoAnoAnterior);
+  const faturamentoAtual = calcularFaturamentoLiquidoPorUF(dadosAtual);
+  const faturamentoMesAnterior = calcularFaturamentoLiquidoPorUF(dadosMesAnterior);
+  const faturamentoAnoAnterior = calcularFaturamentoLiquidoPorUF(dadosAnoAnterior);
 
   const resultado = new Map<string, { variacaoMoM: number; variacaoYoY: number }>();
   
@@ -196,28 +223,35 @@ export function calcularVariacoesPorUF(
   return resultado;
 }
 
-// Calcula variações MoM e YoY por Região
+// Calcula faturamento líquido por Região (usado nas variações)
+function calcularFaturamentoLiquidoPorRegiao(data: VendaItem[]): Map<string, number> {
+  const { vendas, devolucoes } = separarVendasDevolucoes(data);
+  const resultado = new Map<string, number>();
+
+  vendas.forEach((item) => {
+    const uf = item.UF?.trim().toUpperCase() || "XX";
+    const regiao = getRegiaoFromUF(uf);
+    resultado.set(regiao, (resultado.get(regiao) || 0) + (item["Total NF"] || 0));
+  });
+
+  devolucoes.forEach((item) => {
+    const uf = item.UF?.trim().toUpperCase() || "XX";
+    const regiao = getRegiaoFromUF(uf);
+    resultado.set(regiao, (resultado.get(regiao) || 0) - Math.abs(item["Total NF"] || 0));
+  });
+
+  return resultado;
+}
+
+// Calcula variações MoM e YoY por Região usando Faturamento Líquido
 export function calcularVariacoesPorRegiao(
   dadosAtual: VendaItem[],
   dadosMesAnterior: VendaItem[],
   dadosAnoAnterior: VendaItem[]
 ): Map<string, { variacaoMoM: number; variacaoYoY: number }> {
-  const calcularPorRegiao = (data: VendaItem[]): Map<string, number> => {
-    const { vendas } = separarVendasDevolucoes(data);
-    const porRegiao = new Map<string, number>();
-    
-    vendas.forEach((item) => {
-      const uf = item.UF?.trim().toUpperCase() || "XX";
-      const regiao = getRegiaoFromUF(uf);
-      porRegiao.set(regiao, (porRegiao.get(regiao) || 0) + (item["Total NF"] || 0));
-    });
-    
-    return porRegiao;
-  };
-
-  const faturamentoAtual = calcularPorRegiao(dadosAtual);
-  const faturamentoMesAnterior = calcularPorRegiao(dadosMesAnterior);
-  const faturamentoAnoAnterior = calcularPorRegiao(dadosAnoAnterior);
+  const faturamentoAtual = calcularFaturamentoLiquidoPorRegiao(dadosAtual);
+  const faturamentoMesAnterior = calcularFaturamentoLiquidoPorRegiao(dadosMesAnterior);
+  const faturamentoAnoAnterior = calcularFaturamentoLiquidoPorRegiao(dadosAnoAnterior);
 
   const resultado = new Map<string, { variacaoMoM: number; variacaoYoY: number }>();
   
@@ -239,13 +273,14 @@ export function calcularVariacoesPorRegiao(
   return resultado;
 }
 
-// Calcula canais mais fortes por UF
+// Calcula canais mais fortes por UF usando Faturamento Líquido
 export function calcularCanaisPorUF(data: VendaItem[]): Map<string, CanalPorRegiao[]> {
-  const { vendas } = separarVendasDevolucoes(data);
+  const { vendas, devolucoes } = separarVendasDevolucoes(data);
 
   const porUFCanal = new Map<string, Map<string, number>>();
   const totalPorUF = new Map<string, number>();
 
+  // Processa vendas
   vendas.forEach((item) => {
     const uf = item.UF?.trim().toUpperCase() || "XX";
     const canal = item.Atividade?.trim() || "Outros";
@@ -260,10 +295,24 @@ export function calcularCanaisPorUF(data: VendaItem[]): Map<string, CanalPorRegi
     totalPorUF.set(uf, (totalPorUF.get(uf) || 0) + valor);
   });
 
+  // Subtrai devoluções
+  devolucoes.forEach((item) => {
+    const uf = item.UF?.trim().toUpperCase() || "XX";
+    const canal = item.Atividade?.trim() || "Outros";
+    const valor = Math.abs(item["Total NF"] || 0);
+
+    if (porUFCanal.has(uf)) {
+      const canaisUF = porUFCanal.get(uf)!;
+      canaisUF.set(canal, (canaisUF.get(canal) || 0) - valor);
+    }
+    
+    totalPorUF.set(uf, (totalPorUF.get(uf) || 0) - valor);
+  });
+
   const resultado = new Map<string, CanalPorRegiao[]>();
   
   porUFCanal.forEach((canais, uf) => {
-    const total = totalPorUF.get(uf) || 1;
+    const total = Math.abs(totalPorUF.get(uf) || 1);
     const canaisOrdenados: CanalPorRegiao[] = [];
     
     canais.forEach((faturamento, canal) => {
@@ -271,7 +320,7 @@ export function calcularCanaisPorUF(data: VendaItem[]): Map<string, CanalPorRegi
         regiao: uf,
         canal,
         faturamento,
-        percentual: (faturamento / total) * 100,
+        percentual: total > 0 ? (faturamento / total) * 100 : 0,
       });
     });
     
@@ -281,13 +330,14 @@ export function calcularCanaisPorUF(data: VendaItem[]): Map<string, CanalPorRegi
   return resultado;
 }
 
-// Calcula canais mais fortes por Região
+// Calcula canais mais fortes por Região usando Faturamento Líquido
 export function calcularCanaisPorRegiao(data: VendaItem[]): Map<string, CanalPorRegiao[]> {
-  const { vendas } = separarVendasDevolucoes(data);
+  const { vendas, devolucoes } = separarVendasDevolucoes(data);
 
   const porRegiaoCanal = new Map<string, Map<string, number>>();
   const totalPorRegiao = new Map<string, number>();
 
+  // Processa vendas
   vendas.forEach((item) => {
     const uf = item.UF?.trim().toUpperCase() || "XX";
     const regiao = getRegiaoFromUF(uf);
@@ -303,10 +353,25 @@ export function calcularCanaisPorRegiao(data: VendaItem[]): Map<string, CanalPor
     totalPorRegiao.set(regiao, (totalPorRegiao.get(regiao) || 0) + valor);
   });
 
+  // Subtrai devoluções
+  devolucoes.forEach((item) => {
+    const uf = item.UF?.trim().toUpperCase() || "XX";
+    const regiao = getRegiaoFromUF(uf);
+    const canal = item.Atividade?.trim() || "Outros";
+    const valor = Math.abs(item["Total NF"] || 0);
+
+    if (porRegiaoCanal.has(regiao)) {
+      const canaisRegiao = porRegiaoCanal.get(regiao)!;
+      canaisRegiao.set(canal, (canaisRegiao.get(canal) || 0) - valor);
+    }
+    
+    totalPorRegiao.set(regiao, (totalPorRegiao.get(regiao) || 0) - valor);
+  });
+
   const resultado = new Map<string, CanalPorRegiao[]>();
   
   porRegiaoCanal.forEach((canais, regiao) => {
-    const total = totalPorRegiao.get(regiao) || 1;
+    const total = Math.abs(totalPorRegiao.get(regiao) || 1);
     const canaisOrdenados: CanalPorRegiao[] = [];
     
     canais.forEach((faturamento, canal) => {
@@ -314,7 +379,7 @@ export function calcularCanaisPorRegiao(data: VendaItem[]): Map<string, CanalPor
         regiao,
         canal,
         faturamento,
-        percentual: (faturamento / total) * 100,
+        percentual: total > 0 ? (faturamento / total) * 100 : 0,
       });
     });
     
@@ -324,25 +389,34 @@ export function calcularCanaisPorRegiao(data: VendaItem[]): Map<string, CanalPor
   return resultado;
 }
 
-// Top produtos de uma UF/Região específica
+// Top produtos de uma UF/Região específica usando Faturamento Líquido
 export function calcularTopProdutosPorLocal(
   data: VendaItem[],
   filtro: { tipo: "uf" | "regiao"; valor: string },
   limite = 5
 ): { nome: string; valor: number }[] {
-  const { vendas } = separarVendasDevolucoes(data);
+  const { vendas, devolucoes } = separarVendasDevolucoes(data);
 
-  const vendasFiltradas = vendas.filter((item) => {
+  const filtrarPorLocal = (item: VendaItem) => {
     if (filtro.tipo === "uf") {
       return item.UF?.trim().toUpperCase() === filtro.valor.toUpperCase();
     }
     return getRegiaoFromUF(item.UF?.trim() || "") === filtro.valor;
-  });
+  };
+
+  const vendasFiltradas = vendas.filter(filtrarPorLocal);
+  const devolucoesFiltradas = devolucoes.filter(filtrarPorLocal);
 
   const porProduto = new Map<string, number>();
+  
   vendasFiltradas.forEach((item) => {
     const produto = item.Produto?.trim() || "Sem nome";
     porProduto.set(produto, (porProduto.get(produto) || 0) + (item["Total NF"] || 0));
+  });
+
+  devolucoesFiltradas.forEach((item) => {
+    const produto = item.Produto?.trim() || "Sem nome";
+    porProduto.set(produto, (porProduto.get(produto) || 0) - Math.abs(item["Total NF"] || 0));
   });
 
   const resultado: { nome: string; valor: number }[] = [];
@@ -353,25 +427,34 @@ export function calcularTopProdutosPorLocal(
   return resultado.sort((a, b) => b.valor - a.valor).slice(0, limite);
 }
 
-// Top clientes de uma UF/Região específica
+// Top clientes de uma UF/Região específica usando Faturamento Líquido
 export function calcularTopClientesPorLocal(
   data: VendaItem[],
   filtro: { tipo: "uf" | "regiao"; valor: string },
   limite = 5
 ): { nome: string; valor: number }[] {
-  const { vendas } = separarVendasDevolucoes(data);
+  const { vendas, devolucoes } = separarVendasDevolucoes(data);
 
-  const vendasFiltradas = vendas.filter((item) => {
+  const filtrarPorLocal = (item: VendaItem) => {
     if (filtro.tipo === "uf") {
       return item.UF?.trim().toUpperCase() === filtro.valor.toUpperCase();
     }
     return getRegiaoFromUF(item.UF?.trim() || "") === filtro.valor;
-  });
+  };
+
+  const vendasFiltradas = vendas.filter(filtrarPorLocal);
+  const devolucoesFiltradas = devolucoes.filter(filtrarPorLocal);
 
   const porCliente = new Map<string, number>();
+  
   vendasFiltradas.forEach((item) => {
     const cliente = item.Cliente?.trim() || "Sem cliente";
     porCliente.set(cliente, (porCliente.get(cliente) || 0) + (item["Total NF"] || 0));
+  });
+
+  devolucoesFiltradas.forEach((item) => {
+    const cliente = item.Cliente?.trim() || "Sem cliente";
+    porCliente.set(cliente, (porCliente.get(cliente) || 0) - Math.abs(item["Total NF"] || 0));
   });
 
   const resultado: { nome: string; valor: number }[] = [];

@@ -5,7 +5,7 @@ import { BrazilMap } from "@/components/dashboard/BrazilMap";
 import { RegionalTable } from "@/components/dashboard/RegionalTable";
 import { RegionalDetailPanel } from "@/components/dashboard/RegionalDetailPanel";
 import { RegionalChannelsChart } from "@/components/dashboard/RegionalChannelsChart";
-import { RegionalVariationCard } from "@/components/dashboard/RegionalVariationCard";
+
 import { useVendasDoisAnos } from "@/hooks/useVendas";
 import { useUserRole } from "@/hooks/useUserRole";
 import { filtrarPorEquipe, filtrarPorMes } from "@/lib/dataProcessing";
@@ -121,27 +121,12 @@ export default function VisaoRegional() {
     const canaisPorUF = calcularCanaisPorUF(dadosMesAtual);
     const canaisPorRegiao = calcularCanaisPorRegiao(dadosMesAtual);
 
-    // Calcular variação total
-    const totalAtual = dadosPorUF.reduce((sum, d) => sum + d.faturamento, 0);
-    const totalMesAnterior = calcularDadosPorUF(dadosMesAnterior).reduce((sum, d) => sum + d.faturamento, 0);
-    const totalAnoAnterior = calcularDadosPorUF(dadosAnoAnterior).reduce((sum, d) => sum + d.faturamento, 0);
-
-    const variacaoTotalMoM = totalMesAnterior > 0 
-      ? ((totalAtual - totalMesAnterior) / totalMesAnterior) * 100 
-      : totalAtual > 0 ? 100 : 0;
-    
-    const variacaoTotalYoY = totalAnoAnterior > 0 
-      ? ((totalAtual - totalAnoAnterior) / totalAnoAnterior) * 100 
-      : totalAtual > 0 ? 100 : 0;
-
     return {
       dados: dadosMesAtual,
       dadosPorUF: dadosPorUFComVariacoes,
       dadosPorRegiao: dadosPorRegiaoComVariacoes,
       canaisPorUF,
       canaisPorRegiao,
-      variacaoTotalMoM,
-      variacaoTotalYoY,
     };
   }, [vendasData, mes, equipe, sector]);
 
@@ -282,15 +267,6 @@ export default function VisaoRegional() {
 
         {dadosProcessados && (
           <>
-            {/* Variação Total */}
-            <div className="animate-fade-in-up stagger-3 opacity-0">
-              <RegionalVariationCard 
-                titulo="Variação Geográfica Total"
-                variacaoMoM={dadosProcessados.variacaoTotalMoM}
-                variacaoYoY={dadosProcessados.variacaoTotalYoY}
-              />
-            </div>
-
             {/* Mapa e Tabela */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="animate-scale-in stagger-4 opacity-0">
