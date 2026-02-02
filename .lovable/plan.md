@@ -1,46 +1,52 @@
 
+# Plano: Alinhar Containers do Mapa e da Tabela Regional
 
-## Plano: Usar Faturamento Líquido e Remover Card de Variação
+## Problema Identificado
+Os containers do **Mapa de Vendas por Estado** e **Ranking por Estado** possuem dimensões inconsistentes:
+- **BrazilMap**: Usa `h-full` no Card, mas o SVG tem `maxHeight: "450px"` (altura dinâmica)
+- **RegionalTable**: Usa `min-h-[500px]` (altura mínima fixa de 500px)
 
-### O que será feito
+O problema é que `h-full` no mapa depende do container pai, enquanto a tabela tem uma altura mínima diferente. Isso causa desalinhamento visual.
 
-1. **Remover o card "Variação Geográfica Total"** - Este componente será completamente removido da página Regional
+## Solução
+Definir uma altura fixa e idêntica para ambos os componentes, usando o mapa como referência. O SVG do mapa tem `maxHeight: "450px"`, então calcularemos a altura total do Card considerando o header.
 
-2. **Alterar cálculo de faturamento para Líquido** - Todas as funções de processamento regional passarão a usar:
-   - **Faturamento Líquido = Vendas - Devoluções** (igual à Visão Geral)
-   - Em vez do atual que usa apenas as Vendas
+### Alterações Técnicas
 
----
+**1. BrazilMap.tsx (linha 81)**
+- Trocar `h-full` por uma altura fixa `h-[560px]`
+- Isso garante que o Card tenha sempre a mesma altura
 
-### Detalhes Técnicos
+```tsx
+// De:
+<Card className="h-full">
 
-**Arquivo: `src/pages/VisaoRegional.tsx`**
-- Remover import do `RegionalVariationCard`
-- Remover o bloco JSX do card de variação (linhas 286-292)
-- Remover cálculos de `variacaoTotalMoM` e `variacaoTotalYoY` do useMemo
-
-**Arquivo: `src/lib/regionalProcessing.ts`**
-- Modificar `calcularDadosPorUF()`: Usar vendas E devoluções para calcular faturamento líquido
-- Modificar `calcularVariacoesPorUF()`: Usar faturamento líquido nas comparações
-- Modificar `calcularVariacoesPorRegiao()`: Usar faturamento líquido nas comparações
-- Modificar `calcularCanaisPorUF()`: Usar faturamento líquido
-- Modificar `calcularCanaisPorRegiao()`: Usar faturamento líquido
-- Modificar `calcularTopProdutosPorLocal()`: Usar faturamento líquido
-- Modificar `calcularTopClientesPorLocal()`: Usar faturamento líquido
-
-**Lógica de cálculo do Faturamento Líquido:**
-```text
-Para cada UF/Região:
-  faturamentoLiquido = soma(vendas.TotalNF) - soma(abs(devolucoes.TotalNF))
+// Para:
+<Card className="h-[560px]">
 ```
 
----
+**2. RegionalTable.tsx (linha 68)**
+- Trocar `min-h-[500px]` por a mesma altura fixa `h-[560px]`
+- Ajustar o container de scroll interno para ocupar o espaço disponível
 
-### Resultado Esperado
+```tsx
+// De:
+<Card className="min-h-[500px] flex flex-col">
 
-| Antes | Depois |
-|-------|--------|
-| Card "Variação Geográfica Total" visível | Card removido |
-| Faturamento = apenas vendas (bruto) | Faturamento = vendas - devoluções (líquido) |
-| Valores diferentes da Visão Geral | Valores consistentes com Visão Geral |
+// Para:
+<Card className="h-[560px] flex flex-col">
+```
 
+**3. RegionalTable.tsx (linha 74)**
+- Remover `max-h-[420px]` para permitir que a tabela ocupe todo o espaço flexível disponível
+
+```tsx
+// De:
+<div className="h-full max-h-[420px] overflow-y-auto">
+
+// Para:
+<div className="h-full overflow-y-auto">
+```
+
+## Resultado Esperado
+Ambos os containers terão exatamente 560px de altura, ficando perfeitamente alinhados lado a lado no grid de duas colunas.
