@@ -1,13 +1,6 @@
 import type { VendaItem } from "@/types/venda";
 import { separarVendasDevolucoes } from "./dataProcessing";
 
-// UFs válidas incluindo EX (Exterior/Exportação)
-const UFS_VALIDAS = new Set([
-  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
-  "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN",
-  "RS", "RO", "RR", "SC", "SP", "SE", "TO", "EX" // EX = Exterior/Exportação
-]);
-
 export interface DadosRegionais {
   uf: string;
   regiao: string;
@@ -56,13 +49,10 @@ const UF_REGIAO: Record<string, string> = {
   PR: "Sul",
   RS: "Sul",
   SC: "Sul",
-  EX: "Exterior", // Exterior/Exportação
 };
 
 export function getRegiaoFromUF(uf: string): string {
-  const ufNormalizado = uf.trim().toUpperCase();
-  if (ufNormalizado === "EX") return "Exterior";
-  return UF_REGIAO[ufNormalizado] || "Outros";
+  return UF_REGIAO[uf.trim().toUpperCase()] || "Outros";
 }
 
 // Calcula dados por UF
@@ -78,18 +68,7 @@ export function calcularDadosPorUF(data: VendaItem[]): DadosRegionais[] {
   }>();
 
   vendas.forEach((item) => {
-    let uf = item.UF?.trim().toUpperCase() || "XX";
-    
-    // Validar se UF é válida
-    if (!UFS_VALIDAS.has(uf)) {
-      console.warn(`[regionalProcessing] UF inválida encontrada: "${uf}". Item:`, {
-        nota: item.Nota,
-        cliente: item.Cliente,
-        uf: item.UF
-      });
-      uf = "XX"; // Agrupar inválidos como "Outros"
-    }
-
+    const uf = item.UF?.trim().toUpperCase() || "XX";
     const atual = porUF.get(uf) || {
       faturamento: 0,
       margem: 0,
@@ -108,21 +87,15 @@ export function calcularDadosPorUF(data: VendaItem[]): DadosRegionais[] {
 
   const resultado: DadosRegionais[] = [];
   porUF.forEach((dados, uf) => {
-    // Não incluir "XX" (inválidos) no resultado final
-    if (uf !== "XX") {
-      resultado.push({
-        uf,
-        regiao: dados.regiao,
-        faturamento: dados.faturamento,
-        margem: dados.margem,
-        margemPercentual: dados.faturamento > 0 ? (dados.margem / dados.faturamento) * 100 : 0,
-        quantidade: dados.quantidade,
-        notas: dados.notas.size,
-      });
-    } else if (dados.faturamento > 0) {
-      // Log de dados inválidos que foram descartados
-      console.warn(`[regionalProcessing] Dados com UF inválida descartados. Faturamento: R$ ${dados.faturamento}`);
-    }
+    resultado.push({
+      uf,
+      regiao: dados.regiao,
+      faturamento: dados.faturamento,
+      margem: dados.margem,
+      margemPercentual: dados.faturamento > 0 ? (dados.margem / dados.faturamento) * 100 : 0,
+      quantidade: dados.quantidade,
+      notas: dados.notas.size,
+    });
   });
 
   return resultado.sort((a, b) => b.faturamento - a.faturamento);
@@ -230,26 +203,13 @@ export function calcularTopClientesPorLocal(
 
 // Calcula o range de valores para gradiente de cor
 export function calcularRangeValores(dados: DadosRegionais[] | DadosAgrupados[], metrica: "faturamento" | "margem" | "quantidade"): { min: number; max: number } {
-  if (dados.length === 0) {
-    console.warn(`[regionalProcessing] Nenhum dado para calcular range de ${metrica}`);
-    return { min: 0, max: 0 };
-  }
+  if (dados.length === 0) return { min: 0, max: 0 };
 
-  // Filtrar valores válidos (não NaN, não undefined)
-  const valores = dados
-    .map((d) => d[metrica])
-    .filter((v) => typeof v === "number" && !isNaN(v) && v >= 0);
-  
-  if (valores.length === 0) {
-    console.warn(`[regionalProcessing] Nenhum valor válido encontrado para métrica: ${metrica}`);
-    return { min: 0, max: 0 };
-  }
-
-  const min = Math.min(...valores);
-  const max = Math.max(...valores);
-  console.log(`[regionalProcessing] Range para ${metrica}:`, { min, max, quantidade: valores.length });
-  
-  return { min, max };
+  const valores = dados.map((d) => d[metrica]);
+  return {
+    min: Math.min(...valores),
+    max: Math.max(...valores),
+  };
 }
 
 // Calcula cor baseada no valor (gradiente verde)

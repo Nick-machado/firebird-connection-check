@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatCompactCurrency, formatPercent, formatNumber } from "@/lib/formatters";
@@ -45,7 +45,6 @@ const UF_NOMES: Record<string, string> = {
   PI: "Piauí", PR: "Paraná", RJ: "Rio de Janeiro", RN: "Rio Grande do Norte",
   RO: "Rondônia", RR: "Roraima", RS: "Rio Grande do Sul", SC: "Santa Catarina",
   SE: "Sergipe", SP: "São Paulo", TO: "Tocantins",
-  EX: "Exterior", // Exterior/Exportação
 };
 
 type Metrica = "faturamento" | "margem" | "quantidade";
@@ -60,66 +59,20 @@ interface BrazilMapProps {
 export function BrazilMap({ dados, metrica, onEstadoClick, estadoSelecionado }: BrazilMapProps) {
   const [estadoHover, setEstadoHover] = useState<string | null>(null);
 
-  // DEBUG: Verificar dados recebidos
-  useEffect(() => {
-    console.log("[BrazilMap] Dados recebidos:", {
-      quantidade: dados.length,
-      ufs: dados.map(d => d.uf),
-      faturamentos: dados.map(d => ({ uf: d.uf, faturamento: d.faturamento }))
-    });
-    console.log("[BrazilMap] UFs disponíveis no mapa SVG:", Object.keys(ESTADOS_PATHS).length, "estados");
-    
-    // Verificar UFs que estão nos dados mas não no mapa
-    const ufsNoMapa = new Set(Object.keys(ESTADOS_PATHS));
-    const ufsMissing = dados.filter(d => !ufsNoMapa.has(d.uf));
-    if (ufsMissing.length > 0) {
-      console.warn("[BrazilMap] UFs nos dados mas não no mapa SVG:", ufsMissing.map(d => d.uf));
-    }
-  }, [dados]);
-
   // Criar mapa de UF -> dados para acesso rápido
   const dadosPorUF = useMemo(() => {
     const map = new Map<string, DadosRegionais>();
-    dados.forEach((d) => {
-      map.set(d.uf, d);
-    });
-    console.log("[BrazilMap] Mapa de UF criado com", map.size, "entradas");
+    dados.forEach((d) => map.set(d.uf, d));
     return map;
   }, [dados]);
 
   // Calcular range para gradiente de cor
-  const range = useMemo(() => {
-    const calculado = calcularRangeValores(dados, metrica);
-    console.log("[BrazilMap] Range calculado para métrica", metrica, ":", calculado);
-    return calculado;
-  }, [dados, metrica]);
+  const range = useMemo(() => calcularRangeValores(dados, metrica), [dados, metrica]);
 
-  // MELHORADO: Função getCorEstado com validação
   const getCorEstado = (uf: string) => {
     const dado = dadosPorUF.get(uf);
-    
-    if (!dado) {
-      console.debug(`[BrazilMap] Sem dados para UF: ${uf}`);
-      return "hsl(0, 0%, 90%)"; // Cinza claro para estados sem dados
-    }
-    
-    const valor = dado[metrica];
-    
-    // Validar que o valor é numérico e válido
-    if (typeof valor !== "number" || isNaN(valor) || valor < 0) {
-      console.warn(`[BrazilMap] Valor inválido para ${uf} (${metrica}):`, valor);
-      return "hsl(0, 0%, 90%)";
-    }
-    
-    // Se range é zero (todos os valores são iguais), usar cor média
-    if (range.min === range.max) {
-      console.debug(`[BrazilMap] Range zero para ${uf}, usando cor média`);
-      return "hsl(142, 76%, 50%)";
-    }
-    
-    const cor = calcularCorGradiente(valor, range.min, range.max);
-    console.debug(`[BrazilMap] Cor para ${uf} (${metrica}: ${valor}):`, cor);
-    return cor;
+    if (!dado) return "hsl(var(--muted))";
+    return calcularCorGradiente(dado[metrica], range.min, range.max);
   };
 
   const formatarValorMetrica = (valor: number, tipo: Metrica) => {
@@ -144,7 +97,6 @@ export function BrazilMap({ dados, metrica, onEstadoClick, estadoSelecionado }: 
             const dado = dadosPorUF.get(uf);
             const isSelected = estadoSelecionado === uf;
             const isHovered = estadoHover === uf;
-            const temDados = !!dado;
             
             return (
               <Tooltip key={uf}>
@@ -154,20 +106,12 @@ export function BrazilMap({ dados, metrica, onEstadoClick, estadoSelecionado }: 
                     fill={getCorEstado(uf)}
                     stroke={isSelected ? "hsl(var(--primary))" : isHovered ? "hsl(var(--foreground))" : "hsl(var(--border))"}
                     strokeWidth={isSelected ? 2.5 : isHovered ? 1.5 : 0.5}
-                    className={`${temDados ? "cursor-pointer" : "cursor-default"} transition-all duration-200`}
-                    onClick={() => {
-                      if (temDados) {
-                        console.log(`[BrazilMap] Estado clicado: ${uf}`);
-                        onEstadoClick(uf);
-                      }
-                    }}
-                    onMouseEnter={() => {
-                      if (temDados) setEstadoHover(uf);
-                    }}
+                    className="cursor-pointer transition-all duration-200"
+                    onClick={() => onEstadoClick(uf)}
+                    onMouseEnter={() => setEstadoHover(uf)}
                     onMouseLeave={() => setEstadoHover(null)}
                     style={{
                       filter: isSelected ? "drop-shadow(0 2px 4px rgba(0,0,0,0.3))" : "none",
-                      opacity: temDados ? 1 : 0.7,
                     }}
                   />
                 </TooltipTrigger>

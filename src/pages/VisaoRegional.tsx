@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { FiltrosVendas } from "@/components/dashboard/FiltrosVendas";
-import { BrazilMapInteractive } from "@/components/dashboard/BrazilMapInteractive";
+import { BrazilMap } from "@/components/dashboard/BrazilMap";
 import { RegionalTable } from "@/components/dashboard/RegionalTable";
 import { RegionalDetailPanel } from "@/components/dashboard/RegionalDetailPanel";
 import { useVendasDoisAnos } from "@/hooks/useVendas";
@@ -194,7 +194,7 @@ export default function VisaoRegional() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Mapa */}
             <div className="animate-scale-in stagger-3 opacity-0">
-              <BrazilMapInteractive
+              <BrazilMap
                 dados={dadosProcessados.dadosPorUF}
                 metrica={metrica}
                 onEstadoClick={handleEstadoClick}
