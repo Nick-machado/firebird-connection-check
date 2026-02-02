@@ -58,20 +58,23 @@ function MetricaCard({
 }
 
 function ListaCompleta({ 
-  items, 
+  items = [], 
   searchPlaceholder 
 }: { 
   items: { nome: string; valor: number }[];
   searchPlaceholder: string;
 }) {
   const [search, setSearch] = useState("");
+  
+  // Garantir que items é sempre um array
+  const safeItems = items || [];
 
   const itensFiltrados = useMemo(() => {
-    if (!search.trim()) return items;
-    return items.filter((item) => 
+    if (!search.trim()) return safeItems;
+    return safeItems.filter((item) => 
       item.nome.toLowerCase().includes(search.toLowerCase())
     );
-  }, [items, search]);
+  }, [safeItems, search]);
 
   return (
     <div className="space-y-3">
@@ -120,25 +123,28 @@ function ListaCompleta({
         </div>
       </ScrollArea>
       <p className="text-xs text-muted-foreground text-center">
-        Mostrando {itensFiltrados.length} de {items.length} itens
+        Mostrando {itensFiltrados.length} de {safeItems.length} itens
       </p>
     </div>
   );
 }
 
 function ListaCanais({ 
-  canais 
+  canais = [] 
 }: { 
   canais: CanalPorRegiao[];
 }) {
   const [search, setSearch] = useState("");
+  
+  // Garantir que canais é sempre um array
+  const safeCanais = canais || [];
 
   const canaisFiltrados = useMemo(() => {
-    if (!search.trim()) return canais;
-    return canais.filter((item) => 
+    if (!search.trim()) return safeCanais;
+    return safeCanais.filter((item) => 
       item.canal.toLowerCase().includes(search.toLowerCase())
     );
-  }, [canais, search]);
+  }, [safeCanais, search]);
 
   return (
     <div className="space-y-3">
@@ -192,7 +198,7 @@ function ListaCanais({
         </div>
       </ScrollArea>
       <p className="text-xs text-muted-foreground text-center">
-        Mostrando {canaisFiltrados.length} de {canais.length} canais
+        Mostrando {canaisFiltrados.length} de {safeCanais.length} canais
       </p>
     </div>
   );
@@ -202,10 +208,15 @@ export function RegionalFullDetailsModal({
   isOpen,
   onClose,
   dadosEstado,
-  todosProdutos,
-  todosClientes,
-  todosCanais,
+  todosProdutos = [],
+  todosClientes = [],
+  todosCanais = [],
 }: RegionalFullDetailsModalProps) {
+  // Garantir que os arrays nunca sejam undefined
+  const produtos = todosProdutos || [];
+  const clientes = todosClientes || [];
+  const canais = todosCanais || [];
+
   if (!dadosEstado) {
     return null;
   }
@@ -270,36 +281,36 @@ export function RegionalFullDetailsModal({
             <TabsTrigger value="produtos" className="gap-2">
               <ShoppingBag className="h-4 w-4" />
               <span className="hidden sm:inline">Produtos</span>
-              <span className="text-xs text-muted-foreground">({todosProdutos.length})</span>
+              <span className="text-xs text-muted-foreground">({produtos.length})</span>
             </TabsTrigger>
             <TabsTrigger value="clientes" className="gap-2">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Clientes</span>
-              <span className="text-xs text-muted-foreground">({todosClientes.length})</span>
+              <span className="text-xs text-muted-foreground">({clientes.length})</span>
             </TabsTrigger>
             <TabsTrigger value="canais" className="gap-2">
               <Store className="h-4 w-4" />
               <span className="hidden sm:inline">Canais</span>
-              <span className="text-xs text-muted-foreground">({todosCanais.length})</span>
+              <span className="text-xs text-muted-foreground">({canais.length})</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="produtos" className="flex-1 mt-4">
             <ListaCompleta
-              items={todosProdutos}
+              items={produtos}
               searchPlaceholder="Buscar produto..."
             />
           </TabsContent>
 
           <TabsContent value="clientes" className="flex-1 mt-4">
             <ListaCompleta
-              items={todosClientes}
+              items={clientes}
               searchPlaceholder="Buscar cliente..."
             />
           </TabsContent>
 
           <TabsContent value="canais" className="flex-1 mt-4">
-            <ListaCanais canais={todosCanais} />
+            <ListaCanais canais={canais} />
           </TabsContent>
         </Tabs>
       </DialogContent>
