@@ -308,7 +308,6 @@ export default function VisaoRegional() {
                   tipo={granularidade}
                   onRowClick={handleEstadoClick}
                   selecionado={estadoSelecionado}
-                  mostrarVariacoes={true}
                 />
               </div>
             </div>
