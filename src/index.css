@@ -188,3 +188,8 @@
     z-index: 10;
   }
 }
+
+/* Aproxima a legenda flutuante do mapa do cursor */
+[data-brazil-map="interactive"] div[style*="position: fixed"][style*="pointer-events: none"] {
+  transform: translate(-12px, -12px);
+}
