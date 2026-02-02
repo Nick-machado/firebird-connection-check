@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import VisaoGeral from "./pages/VisaoGeral";
 import VisaoRegional from "./pages/VisaoRegional";
+import Clientes from "./pages/Clientes";
 import Usuarios from "./pages/Usuarios";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
@@ -33,6 +34,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <VisaoRegional />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/clientes"
+            element={
+              <ProtectedRoute>
+                <Clientes />
               </ProtectedRoute>
             }
           />
