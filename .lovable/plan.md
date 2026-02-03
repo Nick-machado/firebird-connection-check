@@ -1,86 +1,122 @@
 
 
-# Plano: Criar Página de Clientes
+# Plano: Refatorar Pagina de Clientes com Abordagem Hibrida
 
-## Objetivo
-Criar uma nova página dedicada à análise de clientes com métricas de faturamento, frequência de compra, novos vs. recorrentes e churn.
+## Resumo
+Refatorar a pagina de Clientes para utilizar os endpoints especificos da API de clientes (`/api/clientes` e `/api/clientes/ultima-compra`) em combinacao com os dados de vendas existentes, otimizando a precisao das metricas.
 
 ---
 
-## Arquitetura da Solução
+## Mudancas Principais
 
-### Novos Arquivos a Criar
+### O Que Muda
+
+| Metrica | Antes | Depois |
+|---------|-------|--------|
+| **Clientes Novos** | Comparava IDs entre 2 anos de vendas | Usa campo `Data Cad.` da API de clientes |
+| **Churn** | Calculava ultima compra processando todas as vendas | Usa campo `Ult.Compra` direto da API |
+| **Top 10 e Frequencia** | Dados de vendas | Continua igual (dados de vendas) |
+
+### Beneficios
+
+1. **Precisao**: Data de cadastro real vs. primeira venda no periodo
+2. **Performance**: Menos processamento para churn (endpoint dedicado)
+3. **Dados extras**: Atividade, Categoria, Regiao, Situacao do cliente
+
+---
+
+## Arquivos a Modificar/Criar
 
 ```text
 src/
+├── hooks/
+│   └── useClientes.ts              # NOVO - Hook para API de clientes
+├── types/
+│   └── cliente.ts                  # MODIFICAR - Adicionar tipo ClienteAPI
+├── lib/
+│   └── clientesProcessing.ts       # MODIFICAR - Adaptar funcoes para dados hibridos
 ├── pages/
-│   └── Clientes.tsx                    # Página principal
-├── components/
-│   └── clientes/
-│       ├── TopClientesTable.tsx        # Tabela dos Top 10 clientes
-│       ├── ClientesNovosRecorrentes.tsx # Gráfico/Cards novos vs recorrentes
-│       ├── FrequenciaCompraChart.tsx   # Gráfico de frequência de compra
-│       └── ChurnClientesCard.tsx       # Card de clientes em churn
-└── lib/
-    └── clientesProcessing.ts           # Funções de processamento de dados
+│   └── Clientes.tsx                # MODIFICAR - Integrar novo hook
+└── components/
+    └── clientes/
+        ├── TopClientesTable.tsx    # MODIFICAR - Adicionar colunas extras
+        └── ChurnClientesCard.tsx   # MODIFICAR - Usar dados da API
 ```
 
 ---
 
-## Métricas e Cálculos
+## Detalhes Tecnicos
 
-### 1. Top 10 Clientes (R$)
-- Agrupa vendas por `Cód. Cli` + `Cliente`
-- Soma `Total Merc.` para cada cliente
-- Ordena por valor decrescente
-- Exibe: Nome, Código, Faturamento, Qtd. Notas, Ticket Médio, Margem
-
-### 2. Taxa de Recompra / Frequência de Compra
-- Para cada cliente, conta o número de notas únicas no período
-- Calcula a média de compras por cliente
-- Segmenta clientes por frequência:
-  - 1 compra (ocasional)
-  - 2-3 compras (regular)
-  - 4+ compras (frequente)
-- Exibe em gráfico de barras ou pizza
-
-### 3. Clientes Novos vs. Recorrentes
-- **Cliente Novo**: `Cód. Cli` que aparece no ano atual mas NÃO no ano anterior
-- **Cliente Recorrente**: `Cód. Cli` que aparece em ambos os anos
-- Exibe:
-  - Cards com quantidade e percentual
-  - Faturamento de clientes novos vs. recorrentes
-
-### 4. Churn de Clientes
-- Identifica clientes que:
-  - Compraram há 3+ meses mas NÃO compraram nos últimos 3 meses
-  - Compraram há 6+ meses mas NÃO compraram nos últimos 6 meses
-- Exibe:
-  - Quantidade de clientes em risco
-  - Valor de faturamento perdido (baseado em compras anteriores)
-  - Lista dos principais clientes em churn
-
----
-
-## Detalhes Técnicos
-
-### 1. Arquivo: `src/lib/clientesProcessing.ts`
-
-Novas funções de processamento:
+### 1. Novo Hook: `src/hooks/useClientes.ts`
 
 ```typescript
-// Tipos
-interface ClienteData {
-  codigo: number;
-  nome: string;
-  faturamento: number;
-  notas: Set<string>;
-  margem: number;
-  ultimaCompra: Date;
-  primeiraCompra: Date;
+// Tipo do cliente retornado pela API
+interface ClienteAPI {
+  "Cod. Cli": number;
+  "Cliente": string;
+  "Atividade": string;
+  "UF": string;
+  "Cidade": string;
+  "Email": string;
+  "Ult.Compra": string; // ISO date
+  "Data Cad.": string;  // ISO date
+  "Situacao": "A" | "I";
+  "Categoria": string | null;
+  "Regiao": string;
 }
 
-interface ClienteAnalise {
+// Hook para buscar todos os clientes
+export function useClientes() {
+  return useQuery({
+    queryKey: ["clientes"],
+    queryFn: async () => {
+      const response = await fetch(`${API_URL}/api/clientes`);
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error);
+      return result.data as ClienteAPI[];
+    },
+    staleTime: 1000 * 60 * 30, // 30 minutos
+  });
+}
+
+// Hook para buscar clientes com ultima compra no periodo (para churn)
+export function useClientesUltimaCompra(dataInicio: string, dataFim: string) {
+  return useQuery({
+    queryKey: ["clientes-ultima-compra", dataInicio, dataFim],
+    queryFn: async () => {
+      const params = new URLSearchParams({ dataInicio, dataFim });
+      const response = await fetch(`${API_URL}/api/clientes/ultima-compra?${params}`);
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error);
+      return result.data as ClienteAPI[];
+    },
+    staleTime: 1000 * 60 * 20,
+  });
+}
+```
+
+### 2. Atualizar Tipos: `src/types/cliente.ts`
+
+Adicionar:
+
+```typescript
+// Tipo para cliente da API (cadastro)
+export interface ClienteAPI {
+  "Cod. Cli": number;
+  Cliente: string;
+  Atividade: string;
+  UF: string;
+  Cidade: string;
+  Email: string;
+  "Ult.Compra": string;
+  "Data Cad.": string;
+  Situacao: "A" | "I";
+  Categoria: string | null;
+  Regiao: string;
+}
+
+// Atualizar ClienteAnalise para incluir dados extras
+export interface ClienteAnalise {
   codigo: number;
   nome: string;
   faturamento: number;
@@ -88,102 +124,212 @@ interface ClienteAnalise {
   ticketMedio: number;
   margem: number;
   margemPercentual: number;
+  // Novos campos da API
+  atividade?: string;
+  regiao?: string;
+  categoria?: string;
+  ultimaCompra?: Date;
+  dataCadastro?: Date;
+  situacao?: "A" | "I";
 }
-
-// Funções
-function calcularTopClientes(data: VendaItem[], limite?: number): ClienteAnalise[]
-function calcularFrequenciaCompra(data: VendaItem[]): { frequencia: string; quantidade: number; percentual: number }[]
-function calcularClientesNovosRecorrentes(dataAnoAtual: VendaItem[], dataAnoAnterior: VendaItem[]): { novos: ClienteAnalise[]; recorrentes: ClienteAnalise[] }
-function calcularChurnClientes(data: VendaItem[], mesesChurn: number): { clientesChurn: ClienteAnalise[]; faturamentoPerdido: number }
 ```
 
-### 2. Arquivo: `src/pages/Clientes.tsx`
+### 3. Refatorar Processamento: `src/lib/clientesProcessing.ts`
 
-Estrutura da página:
+**Nova funcao para clientes novos (usa Data Cad.):**
 
-```tsx
-// Layout
-<DashboardLayout>
-  {/* Header + Filtros (Ano, Mês, Equipe) */}
-  
-  {/* KPIs resumo */}
-  <Grid cols={4}>
-    <KPICard title="Total Clientes Ativos" />
-    <KPICard title="Clientes Novos" />
-    <KPICard title="Taxa Recompra Média" />
-    <KPICard title="Clientes em Risco (Churn)" />
-  </Grid>
-  
-  {/* Top 10 Clientes - Tabela completa */}
-  <TopClientesTable />
-  
-  {/* Gráficos lado a lado */}
-  <Grid cols={2}>
-    <ClientesNovosRecorrentes />
-    <FrequenciaCompraChart />
-  </Grid>
-  
-  {/* Churn detalhado */}
-  <ChurnClientesCard />
-</DashboardLayout>
+```typescript
+export function calcularClientesNovosAPI(
+  clientesAPI: ClienteAPI[],
+  anoReferencia: number
+): { novos: ClienteAPI[]; existentes: ClienteAPI[] } {
+  const novos: ClienteAPI[] = [];
+  const existentes: ClienteAPI[] = [];
+
+  for (const cliente of clientesAPI) {
+    const dataCad = new Date(cliente["Data Cad."]);
+    if (dataCad.getFullYear() === anoReferencia) {
+      novos.push(cliente);
+    } else {
+      existentes.push(cliente);
+    }
+  }
+
+  return { novos, existentes };
+}
 ```
 
-### 3. Arquivo: `src/App.tsx`
+**Funcao de churn otimizada (usa Ult.Compra da API):**
 
-Adicionar rota:
-```tsx
-<Route path="/clientes" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
+```typescript
+export function calcularChurnAPI(
+  clientesAPI: ClienteAPI[],
+  dataReferencia: Date
+): ChurnAnaliseData {
+  const churn3Meses: ChurnClienteData[] = [];
+  const churn6Meses: ChurnClienteData[] = [];
+
+  const limite3 = new Date(dataReferencia);
+  limite3.setMonth(limite3.getMonth() - 3);
+
+  const limite6 = new Date(dataReferencia);
+  limite6.setMonth(limite6.getMonth() - 6);
+
+  for (const cliente of clientesAPI) {
+    if (cliente.Situacao !== "A") continue; // Ignora inativos
+
+    const ultCompra = new Date(cliente["Ult.Compra"]);
+    const diasSemCompra = Math.floor(
+      (dataReferencia.getTime() - ultCompra.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    if (ultCompra < limite6) {
+      churn6Meses.push({ 
+        cliente: mapClienteAPIToAnalise(cliente), 
+        diasSemCompra, 
+        ultimaCompra: ultCompra 
+      });
+    } else if (ultCompra < limite3) {
+      churn3Meses.push({ 
+        cliente: mapClienteAPIToAnalise(cliente), 
+        diasSemCompra, 
+        ultimaCompra: ultCompra 
+      });
+    }
+  }
+
+  return {
+    churn3Meses: { clientes: churn3Meses, quantidade: churn3Meses.length, ... },
+    churn6Meses: { clientes: churn6Meses, quantidade: churn6Meses.length, ... },
+  };
+}
 ```
 
-### 4. Arquivo: `src/components/layout/DashboardLayout.tsx`
+**Funcao para enriquecer Top 10 com dados da API:**
 
-Atualizar menu para habilitar a página de Clientes:
+```typescript
+export function enriquecerClientesComAPI(
+  clientesVendas: ClienteAnalise[],
+  clientesAPI: ClienteAPI[]
+): ClienteAnalise[] {
+  const mapAPI = new Map(clientesAPI.map(c => [c["Cod. Cli"], c]));
+
+  return clientesVendas.map(cliente => {
+    const dadosAPI = mapAPI.get(cliente.codigo);
+    if (dadosAPI) {
+      return {
+        ...cliente,
+        atividade: dadosAPI.Atividade,
+        regiao: dadosAPI.Regiao,
+        categoria: dadosAPI.Categoria || undefined,
+        situacao: dadosAPI.Situacao,
+      };
+    }
+    return cliente;
+  });
+}
+```
+
+### 4. Atualizar Pagina: `src/pages/Clientes.tsx`
+
+```typescript
+// Adicionar imports
+import { useClientes } from "@/hooks/useClientes";
+import { calcularClientesNovosAPI, calcularChurnAPI, enriquecerClientesComAPI } from "@/lib/clientesProcessing";
+
+// Dentro do componente
+const { data: clientesAPI, isLoading: loadingClientes } = useClientes();
+const { data: vendasData, isLoading: loadingVendas } = useVendasDoisAnos(ano);
+
+const isLoading = loadingClientes || loadingVendas;
+
+const dadosProcessados = useMemo(() => {
+  if (!vendasData || !clientesAPI) return null;
+
+  // Top 10 e frequencia - usa vendas (como antes)
+  const topClientes = calcularTopClientesDetalhado(dadosMesFiltrados, 10);
+  const frequenciaCompra = calcularFrequenciaCompra(dadosMesFiltrados);
+
+  // Enriquece Top 10 com dados da API
+  const topClientesEnriquecidos = enriquecerClientesComAPI(topClientes, clientesAPI);
+
+  // Clientes novos - usa Data Cad. da API
+  const { novos, existentes } = calcularClientesNovosAPI(clientesAPI, ano);
+
+  // Churn - usa Ult.Compra da API
+  const dataRef = new Date(ano, mes, 0);
+  const churnClientes = calcularChurnAPI(clientesAPI, dataRef);
+
+  return {
+    topClientes: topClientesEnriquecidos,
+    frequenciaCompra,
+    clientesNovosRecorrentes: { novos, existentes },
+    churnClientes,
+    estatisticas,
+  };
+}, [vendasData, clientesAPI, ano, mes, equipe]);
+```
+
+### 5. Atualizar TopClientesTable
+
+Adicionar colunas opcionais para Atividade e Regiao:
+
 ```tsx
-// Remover disabled: true do item "/clientes"
-{ path: "/clientes", label: "Clientes", icon: Users }
+// Na tabela, adicionar colunas
+<TableHead>Atividade</TableHead>
+<TableHead>Regiao</TableHead>
+
+// No corpo
+<TableCell>{cliente.atividade || "-"}</TableCell>
+<TableCell>{cliente.regiao || "-"}</TableCell>
 ```
 
 ---
 
-## Componentes Visuais
+## Fluxo de Dados Apos Refatoracao
 
-### TopClientesTable
-- Tabela com colunas: Posição, Nome, Código, Faturamento, Notas, Ticket Médio, Margem, Margem %
-- Barra de progresso visual para faturamento
-- Ordenação por coluna
-
-### ClientesNovosRecorrentes
-- Gráfico de barras lado a lado (novos vs recorrentes)
-- Mostra quantidade e faturamento total de cada grupo
-
-### FrequenciaCompraChart
-- Gráfico de pizza ou donut
-- Segmentos: 1 compra, 2-3 compras, 4+ compras
-
-### ChurnClientesCard
-- Cards com métricas de churn 3 e 6 meses
-- Lista dos top 5 clientes em risco de churn
-- Valor potencial perdido
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                      Pagina Clientes.tsx                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────┐          ┌─────────────────────────────┐  │
+│  │  useClientes()  │          │  useVendasDoisAnos(ano)     │  │
+│  │                 │          │                             │  │
+│  │ GET /api/       │          │ GET /api/vendas             │  │
+│  │ clientes        │          │ (24 requests paralelas)     │  │
+│  └────────┬────────┘          └──────────────┬──────────────┘  │
+│           │                                  │                  │
+│           ▼                                  ▼                  │
+│  ┌─────────────────┐          ┌─────────────────────────────┐  │
+│  │ ClienteAPI[]    │          │ VendaItem[]                 │  │
+│  │ - Ult.Compra    │          │ - Total Merc.               │  │
+│  │ - Data Cad.     │          │ - Nota (frequencia)         │  │
+│  │ - Situacao      │          │ - $ Margem                  │  │
+│  └────────┬────────┘          └──────────────┬──────────────┘  │
+│           │                                  │                  │
+│           └───────────┬──────────────────────┘                  │
+│                       ▼                                         │
+│           ┌─────────────────────────────────┐                   │
+│           │   Processamento Hibrido         │                   │
+│           │                                 │                   │
+│           │  - Top 10: vendas + API enrich  │                   │
+│           │  - Frequencia: vendas           │                   │
+│           │  - Novos: API (Data Cad.)       │                   │
+│           │  - Churn: API (Ult.Compra)      │                   │
+│           └─────────────────────────────────┘                   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Filtros
+## Ordem de Implementacao
 
-A página usará os mesmos filtros das outras páginas:
-- **Ano**: Seleciona o ano de análise
-- **Mês**: Filtra dados até o mês selecionado (para churn, usa como referência)
-- **Equipe**: Filtra por equipe de vendas
-
-Os filtros usarão o hook `useVendasDoisAnos` existente para aproveitar o cache de dados.
-
----
-
-## Ordem de Implementação
-
-1. Criar `src/lib/clientesProcessing.ts` com todas as funções de cálculo
-2. Criar tipos de dados em `src/types/cliente.ts`
-3. Criar componentes individuais em `src/components/clientes/`
-4. Criar página principal `src/pages/Clientes.tsx`
-5. Atualizar rotas em `src/App.tsx`
-6. Habilitar menu em `DashboardLayout.tsx`
+1. Criar `src/hooks/useClientes.ts` com os hooks de API
+2. Atualizar `src/types/cliente.ts` com novos tipos
+3. Atualizar `src/lib/clientesProcessing.ts` com novas funcoes
+4. Refatorar `src/pages/Clientes.tsx` para usar abordagem hibrida
+5. Atualizar componentes (`TopClientesTable`, `ChurnClientesCard`) para exibir dados extras
+6. Testar com dados reais
 
