@@ -32,10 +32,11 @@ export function ClientesTable({ data, onClienteClick, statusFilter }: ClientesTa
 
   // Filtra por busca
   const clientesFiltrados = data.filter((cliente) => {
+    if (!searchTerm) return true;
     const termo = searchTerm.toLowerCase();
     return (
-      cliente.nome.toLowerCase().includes(termo) ||
-      cliente.codigo.toString().includes(termo) ||
+      cliente.nome?.toLowerCase().includes(termo) ||
+      cliente.codigo?.toString().includes(termo) ||
       cliente.atividade?.toLowerCase().includes(termo) ||
       cliente.regiao?.toLowerCase().includes(termo) ||
       cliente.cidade?.toLowerCase().includes(termo)
