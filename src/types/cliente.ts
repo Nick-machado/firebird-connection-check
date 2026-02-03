@@ -2,7 +2,7 @@
  * Tipo para cliente retornado pela API de cadastro
  */
 export interface ClienteAPI {
-  "Cod. Cli": number;
+  "Cód. Cli": number;
   Cliente: string;
   Atividade: string;
   UF: string;
