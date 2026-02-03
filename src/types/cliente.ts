@@ -16,7 +16,33 @@ export interface ClienteAPI {
 }
 
 /**
- * Análise detalhada de cliente com métricas de vendas
+ * Tipo para venda retornada pela API de vendas do cliente
+ */
+export interface VendaClienteAPI {
+  Id: number;
+  Data: string;
+  Nota: string;
+  Produto: string;
+  "Cód. Prod": string;
+  Quant: number;
+  "Valor Unit.": number;
+  "Total NF": number;
+  "Total Merc.": number;
+  "$ Margem": number;
+  "Mg.Líq": number;
+  Categoria: string;
+  Subgrupo: string;
+  Vendedor: string;
+  Equipe: string;
+}
+
+/**
+ * Status de atividade do cliente baseado na última compra
+ */
+export type ClienteStatus = "ativo" | "em_risco" | "inativo";
+
+/**
+ * Análise detalhada de cliente com métricas e status
  */
 export interface ClienteAnalise {
   codigo: number;
@@ -26,7 +52,7 @@ export interface ClienteAnalise {
   ticketMedio: number;
   margem: number;
   margemPercentual: number;
-  // Campos extras da API de clientes
+  // Campos da API de clientes
   atividade?: string;
   regiao?: string;
   categoria?: string;
@@ -35,6 +61,29 @@ export interface ClienteAnalise {
   situacao?: "A" | "I";
   uf?: string;
   cidade?: string;
+  email?: string;
+  // Status calculado
+  status?: ClienteStatus;
+  diasSemCompra?: number;
+}
+
+/**
+ * Dados de classificação de clientes por status
+ */
+export interface ClientesStatusData {
+  ativos: {
+    clientes: ClienteAnalise[];
+    quantidade: number;
+  };
+  emRisco: {
+    clientes: ClienteAnalise[];
+    quantidade: number;
+  };
+  inativos: {
+    clientes: ClienteAnalise[];
+    quantidade: number;
+  };
+  total: number;
 }
 
 export interface FrequenciaCompraData {

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { API_URL } from "@/lib/constants";
-import type { ClienteAPI } from "@/types/cliente";
+import type { ClienteAPI, VendaClienteAPI } from "@/types/cliente";
 
 /**
  * Hook para buscar todos os clientes da API
@@ -24,24 +24,28 @@ export function useClientes() {
 }
 
 /**
- * Hook para buscar clientes com última compra no período (para análise de churn)
+ * Hook para buscar vendas de um cliente específico
  */
-export function useClientesUltimaCompra(dataInicio: string, dataFim: string) {
+export function useClienteVendas(clienteId: number | null) {
   return useQuery({
-    queryKey: ["clientes-ultima-compra", dataInicio, dataFim],
+    queryKey: ["cliente-vendas", clienteId],
     queryFn: async () => {
-      const params = new URLSearchParams({ dataInicio, dataFim });
-      const response = await fetch(`${API_URL}/api/clientes/ultima-compra?${params}`);
+      if (!clienteId) return [];
+      const response = await fetch(`${API_URL}/api/clientes/${clienteId}/vendas`);
       if (!response.ok) {
-        throw new Error(`Erro ao buscar clientes: ${response.status}`);
+        throw new Error(`Erro ao buscar vendas do cliente: ${response.status}`);
       }
       const result = await response.json();
       if (!result.success) {
-        throw new Error(result.error || "Erro desconhecido ao buscar clientes");
+        throw new Error(result.error || "Erro desconhecido ao buscar vendas");
       }
-      return result.data as ClienteAPI[];
+      // Ordenar por data mais recente
+      const vendas = result.data as VendaClienteAPI[];
+      return vendas.sort((a, b) => 
+        new Date(b.Data).getTime() - new Date(a.Data).getTime()
+      );
     },
-    staleTime: 1000 * 60 * 20, // 20 minutos
-    enabled: !!dataInicio && !!dataFim,
+    staleTime: 1000 * 60 * 10, // 10 minutos
+    enabled: !!clienteId,
   });
 }
