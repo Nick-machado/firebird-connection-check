@@ -12,7 +12,7 @@ export function mapClienteAPIToAnalise(
   cliente: ClienteAPI,
   dataReferencia: Date = new Date()
 ): ClienteAnalise {
-  const ultimaCompra = cliente["Ult.Compra"] ? new Date(cliente["Ult.Compra"]) : undefined;
+  const ultimaCompra = cliente["Últ.Compra"] ? new Date(cliente["Últ.Compra"]) : undefined;
   const diasSemCompra = ultimaCompra
     ? Math.floor((dataReferencia.getTime() - ultimaCompra.getTime()) / (1000 * 60 * 60 * 24))
     : 9999;

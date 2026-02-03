@@ -8,7 +8,7 @@ export interface ClienteAPI {
   UF: string;
   Cidade: string;
   Email: string;
-  "Ult.Compra": string; // ISO date string
+  "Últ.Compra": string; // ISO date string (note: com acento)
   "Data Cad.": string; // ISO date string
   Situacao: "A" | "I";
   Categoria: string | null;
