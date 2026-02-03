@@ -8,6 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatNumber, formatPercent } from "@/lib/formatters";
 import type { ClienteAnalise } from "@/types/cliente";
 import { Trophy } from "lucide-react";
@@ -39,14 +40,15 @@ export function TopClientesTable({ data }: TopClientesTableProps) {
                 <TableHead className="w-32">% do Top</TableHead>
                 <TableHead className="text-right">Notas</TableHead>
                 <TableHead className="text-right">Ticket Médio</TableHead>
-                <TableHead className="text-right">Margem</TableHead>
+                <TableHead>Região</TableHead>
+                <TableHead>Atividade</TableHead>
                 <TableHead className="text-right">Margem %</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                     Nenhum cliente encontrado para o período selecionado
                   </TableCell>
                 </TableRow>
@@ -64,7 +66,7 @@ export function TopClientesTable({ data }: TopClientesTableProps) {
                         {index === 2 && <span className="text-amber-600">🥉</span>}
                         {index > 2 && <span className="text-muted-foreground">{index + 1}</span>}
                       </TableCell>
-                      <TableCell className="font-medium max-w-[200px] truncate" title={cliente.nome}>
+                      <TableCell className="font-medium max-w-[180px] truncate" title={cliente.nome}>
                         {cliente.nome}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
@@ -82,8 +84,17 @@ export function TopClientesTable({ data }: TopClientesTableProps) {
                       <TableCell className="text-right">
                         {formatCurrency(cliente.ticketMedio)}
                       </TableCell>
-                      <TableCell className="text-right">
-                        {formatCurrency(cliente.margem)}
+                      <TableCell>
+                        {cliente.regiao ? (
+                          <Badge variant="outline" className="text-xs">
+                            {cliente.regiao}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="max-w-[120px] truncate" title={cliente.atividade}>
+                        {cliente.atividade || "-"}
                       </TableCell>
                       <TableCell className="text-right">
                         <span

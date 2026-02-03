@@ -1,6 +1,7 @@
 import type { VendaItem } from "@/types/venda";
 import type {
   ClienteAnalise,
+  ClienteAPI,
   FrequenciaCompraData,
   ClientesNovosRecorrentesData,
   ChurnAnaliseData,
@@ -71,6 +72,29 @@ function parseDataVenda(dataStr: string): Date {
 }
 
 /**
+ * Converte ClienteAPI para ClienteAnalise (sem dados de vendas)
+ */
+export function mapClienteAPIToAnalise(cliente: ClienteAPI): ClienteAnalise {
+  return {
+    codigo: cliente["Cod. Cli"],
+    nome: cliente.Cliente,
+    faturamento: 0,
+    quantidadeNotas: 0,
+    ticketMedio: 0,
+    margem: 0,
+    margemPercentual: 0,
+    atividade: cliente.Atividade,
+    regiao: cliente.Regiao,
+    categoria: cliente.Categoria || undefined,
+    ultimaCompra: cliente["Ult.Compra"] ? new Date(cliente["Ult.Compra"]) : undefined,
+    dataCadastro: cliente["Data Cad."] ? new Date(cliente["Data Cad."]) : undefined,
+    situacao: cliente.Situacao,
+    uf: cliente.UF,
+    cidade: cliente.Cidade,
+  };
+}
+
+/**
  * Calcula os top N clientes por faturamento
  */
 export function calcularTopClientesDetalhado(
@@ -99,6 +123,34 @@ export function calcularTopClientesDetalhado(
   return resultado
     .sort((a, b) => b.faturamento - a.faturamento)
     .slice(0, limite);
+}
+
+/**
+ * Enriquece clientes de vendas com dados da API de cadastro
+ */
+export function enriquecerClientesComAPI(
+  clientesVendas: ClienteAnalise[],
+  clientesAPI: ClienteAPI[]
+): ClienteAnalise[] {
+  const mapAPI = new Map(clientesAPI.map((c) => [c["Cod. Cli"], c]));
+
+  return clientesVendas.map((cliente) => {
+    const dadosAPI = mapAPI.get(cliente.codigo);
+    if (dadosAPI) {
+      return {
+        ...cliente,
+        atividade: dadosAPI.Atividade,
+        regiao: dadosAPI.Regiao,
+        categoria: dadosAPI.Categoria || undefined,
+        situacao: dadosAPI.Situacao,
+        uf: dadosAPI.UF,
+        cidade: dadosAPI.Cidade,
+        ultimaCompra: dadosAPI["Ult.Compra"] ? new Date(dadosAPI["Ult.Compra"]) : undefined,
+        dataCadastro: dadosAPI["Data Cad."] ? new Date(dadosAPI["Data Cad."]) : undefined,
+      };
+    }
+    return cliente;
+  });
 }
 
 /**
@@ -152,9 +204,90 @@ export function calcularFrequenciaCompra(data: VendaItem[]): FrequenciaCompraDat
 }
 
 /**
- * Calcula clientes novos vs recorrentes
- * - Novo: aparece no ano atual mas NÃO no ano anterior
- * - Recorrente: aparece em ambos os anos
+ * Calcula clientes novos usando Data Cad. da API
+ * - Novo: cadastrado no ano de referência
+ * - Existente: cadastrado antes do ano de referência
+ */
+export function calcularClientesNovosAPI(
+  clientesAPI: ClienteAPI[],
+  anoReferencia: number
+): { novos: ClienteAPI[]; existentes: ClienteAPI[] } {
+  const novos: ClienteAPI[] = [];
+  const existentes: ClienteAPI[] = [];
+
+  for (const cliente of clientesAPI) {
+    if (!cliente["Data Cad."]) {
+      existentes.push(cliente);
+      continue;
+    }
+    
+    const dataCad = new Date(cliente["Data Cad."]);
+    if (dataCad.getFullYear() === anoReferencia) {
+      novos.push(cliente);
+    } else {
+      existentes.push(cliente);
+    }
+  }
+
+  return { novos, existentes };
+}
+
+/**
+ * Calcula clientes novos vs recorrentes combinando API + vendas
+ * Usa Data Cad. da API para determinar se é novo
+ * Usa dados de vendas para calcular faturamento
+ */
+export function calcularClientesNovosRecorrentesHibrido(
+  clientesAPI: ClienteAPI[],
+  vendasAnoAtual: VendaItem[],
+  anoReferencia: number
+): ClientesNovosRecorrentesData {
+  const { novos: novosAPI, existentes: existentesAPI } = calcularClientesNovosAPI(clientesAPI, anoReferencia);
+  
+  // Cria set de códigos de clientes novos
+  const codigosNovos = new Set(novosAPI.map((c) => c["Cod. Cli"]));
+  
+  // Agrupa vendas por cliente
+  const vendasPorCliente = agruparPorCliente(vendasAnoAtual);
+  
+  let novosQtd = 0;
+  let novosFat = 0;
+  let recorrentesQtd = 0;
+  let recorrentesFat = 0;
+  
+  for (const [codigo, cliente] of vendasPorCliente) {
+    if (codigosNovos.has(codigo)) {
+      novosQtd++;
+      novosFat += cliente.faturamento;
+    } else {
+      recorrentesQtd++;
+      recorrentesFat += cliente.faturamento;
+    }
+  }
+  
+  const totalQtd = novosQtd + recorrentesQtd;
+  const totalFat = novosFat + recorrentesFat;
+  
+  return {
+    novos: {
+      quantidade: novosQtd,
+      faturamento: novosFat,
+      percentualQtd: totalQtd > 0 ? (novosQtd / totalQtd) * 100 : 0,
+      percentualFat: totalFat > 0 ? (novosFat / totalFat) * 100 : 0,
+    },
+    recorrentes: {
+      quantidade: recorrentesQtd,
+      faturamento: recorrentesFat,
+      percentualQtd: totalQtd > 0 ? (recorrentesQtd / totalQtd) * 100 : 0,
+      percentualFat: totalFat > 0 ? (recorrentesFat / totalFat) * 100 : 0,
+    },
+    total: totalQtd,
+  };
+}
+
+/**
+ * Calcula clientes novos vs recorrentes (versão legada usando vendas)
+ * Mantida para compatibilidade
  */
 export function calcularClientesNovosRecorrentes(
   dataAnoAtual: VendaItem[],
@@ -201,8 +334,82 @@ export function calcularClientesNovosRecorrentes(
 }
 
 /**
- * Calcula o churn de clientes
- * Identifica clientes que compraram anteriormente mas não compraram recentemente
+ * Calcula o churn de clientes usando Ult.Compra da API
+ * Identifica clientes ativos que não compraram recentemente
+ */
+export function calcularChurnAPI(
+  clientesAPI: ClienteAPI[],
+  dataReferencia: Date
+): ChurnAnaliseData {
+  const churn3Meses: ChurnClienteData[] = [];
+  const churn6Meses: ChurnClienteData[] = [];
+
+  const limite3Meses = new Date(dataReferencia);
+  limite3Meses.setMonth(limite3Meses.getMonth() - 3);
+
+  const limite6Meses = new Date(dataReferencia);
+  limite6Meses.setMonth(limite6Meses.getMonth() - 6);
+
+  for (const cliente of clientesAPI) {
+    // Ignora clientes inativos
+    if (cliente.Situacao !== "A") continue;
+    
+    // Ignora clientes sem data de última compra
+    if (!cliente["Ult.Compra"]) continue;
+
+    const ultimaCompra = new Date(cliente["Ult.Compra"]);
+    
+    // Ignora datas inválidas
+    if (isNaN(ultimaCompra.getTime())) continue;
+    
+    const diasSemCompra = Math.floor(
+      (dataReferencia.getTime() - ultimaCompra.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    // Ignora compras futuras ou no mesmo dia
+    if (diasSemCompra <= 0) continue;
+
+    const clienteAnalise = mapClienteAPIToAnalise(cliente);
+
+    // Churn 6+ meses (mais crítico)
+    if (ultimaCompra < limite6Meses) {
+      churn6Meses.push({
+        cliente: clienteAnalise,
+        diasSemCompra,
+        ultimaCompra,
+      });
+    }
+    // Churn 3-6 meses (em risco)
+    else if (ultimaCompra < limite3Meses) {
+      churn3Meses.push({
+        cliente: clienteAnalise,
+        diasSemCompra,
+        ultimaCompra,
+      });
+    }
+  }
+
+  // Ordena por dias sem compra (maior primeiro)
+  churn3Meses.sort((a, b) => b.diasSemCompra - a.diasSemCompra);
+  churn6Meses.sort((a, b) => b.diasSemCompra - a.diasSemCompra);
+
+  return {
+    churn3Meses: {
+      clientes: churn3Meses,
+      quantidade: churn3Meses.length,
+      faturamentoPerdido: churn3Meses.reduce((acc, c) => acc + c.cliente.faturamento, 0),
+    },
+    churn6Meses: {
+      clientes: churn6Meses,
+      quantidade: churn6Meses.length,
+      faturamentoPerdido: churn6Meses.reduce((acc, c) => acc + c.cliente.faturamento, 0),
+    },
+  };
+}
+
+/**
+ * Calcula o churn de clientes (versão legada usando vendas)
+ * Mantida para compatibilidade
  */
 export function calcularChurnClientes(
   dataTotal: VendaItem[],

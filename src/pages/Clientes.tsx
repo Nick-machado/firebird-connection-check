@@ -7,14 +7,16 @@ import { ClientesNovosRecorrentes } from "@/components/clientes/ClientesNovosRec
 import { FrequenciaCompraChart } from "@/components/clientes/FrequenciaCompraChart";
 import { ChurnClientesCard } from "@/components/clientes/ChurnClientesCard";
 import { useVendasDoisAnos } from "@/hooks/useVendas";
+import { useClientes } from "@/hooks/useClientes";
 import { useUserRole } from "@/hooks/useUserRole";
 import { filtrarPorEquipe, filtrarPorMes } from "@/lib/dataProcessing";
 import {
   calcularTopClientesDetalhado,
   calcularFrequenciaCompra,
-  calcularClientesNovosRecorrentes,
-  calcularChurnClientes,
+  calcularClientesNovosRecorrentesHibrido,
+  calcularChurnAPI,
   calcularEstatisticasClientes,
+  enriquecerClientesComAPI,
 } from "@/lib/clientesProcessing";
 import { SECTOR_TO_EQUIPES } from "@/lib/constants";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -42,13 +44,17 @@ export default function Clientes() {
     }
   }, [sector]);
 
-  const { data: vendasData, isLoading, error } = useVendasDoisAnos(ano);
+  // Hooks para buscar dados
+  const { data: vendasData, isLoading: loadingVendas, error: errorVendas } = useVendasDoisAnos(ano);
+  const { data: clientesAPI, isLoading: loadingClientes, error: errorClientes } = useClientes();
+
+  const isLoading = loadingVendas || loadingClientes;
+  const error = errorVendas || errorClientes;
 
   const dadosProcessados = useMemo(() => {
-    if (!vendasData) return null;
+    if (!vendasData || !clientesAPI) return null;
 
     const dadosAnoAtual = vendasData.anoAtual.data;
-    const dadosAnoAnterior = vendasData.anoAnterior.data;
 
     // Apply sector-based filtering
     let equipeFilter = equipe;
@@ -62,44 +68,46 @@ export default function Clientes() {
     }
 
     let dadosAnoAtualFiltrados;
-    let dadosAnoAnteriorFiltrados;
 
     if (equipeFilter === "SECTOR_FILTER" && sector) {
       const allowedEquipes = SECTOR_TO_EQUIPES[sector];
       dadosAnoAtualFiltrados = dadosAnoAtual.filter(
         (v) => allowedEquipes.some((eq) => v.Equipe?.toUpperCase().includes(eq.toUpperCase()))
       );
-      dadosAnoAnteriorFiltrados = dadosAnoAnterior.filter(
-        (v) => allowedEquipes.some((eq) => v.Equipe?.toUpperCase().includes(eq.toUpperCase()))
-      );
     } else {
       dadosAnoAtualFiltrados = filtrarPorEquipe(dadosAnoAtual, equipeFilter);
-      dadosAnoAnteriorFiltrados = filtrarPorEquipe(dadosAnoAnterior, equipeFilter);
     }
 
     // Dados do mês selecionado
     const dadosMesFiltrados = filtrarPorMes(dadosAnoAtualFiltrados, mes);
 
-    // Métricas de clientes
+    // Top 10 e frequência - usa vendas (como antes)
     const topClientes = calcularTopClientesDetalhado(dadosMesFiltrados, 10);
     const frequenciaCompra = calcularFrequenciaCompra(dadosMesFiltrados);
-    const clientesNovosRecorrentes = calcularClientesNovosRecorrentes(
-      dadosAnoAtualFiltrados,
-      dadosAnoAnteriorFiltrados
-    );
     const estatisticas = calcularEstatisticasClientes(dadosMesFiltrados);
-    
-    // Churn usa dados completos do ano para ter histórico
-    const churnClientes = calcularChurnClientes(dadosAnoAtualFiltrados, mes, ano);
+
+    // Enriquece Top 10 com dados da API
+    const topClientesEnriquecidos = enriquecerClientesComAPI(topClientes, clientesAPI);
+
+    // Clientes novos vs recorrentes - usa Data Cad. da API + faturamento de vendas
+    const clientesNovosRecorrentes = calcularClientesNovosRecorrentesHibrido(
+      clientesAPI,
+      dadosAnoAtualFiltrados,
+      ano
+    );
+
+    // Churn - usa Ult.Compra da API (mais preciso)
+    const dataRef = new Date(ano, mes, 0); // último dia do mês
+    const churnClientes = calcularChurnAPI(clientesAPI, dataRef);
 
     return {
-      topClientes,
+      topClientes: topClientesEnriquecidos,
       frequenciaCompra,
       clientesNovosRecorrentes,
       churnClientes,
       estatisticas,
     };
-  }, [vendasData, ano, mes, equipe, sector]);
+  }, [vendasData, clientesAPI, ano, mes, equipe, sector]);
 
   if (isLoading) {
     return (
