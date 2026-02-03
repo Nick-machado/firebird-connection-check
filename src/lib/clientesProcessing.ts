@@ -25,7 +25,7 @@ export function mapClienteAPIToAnalise(
   }
 
   return {
-    codigo: cliente["Cod. Cli"],
+    codigo: cliente["Cód. Cli"],
     nome: cliente.Cliente,
     faturamento: 0,
     quantidadeNotas: 0,
