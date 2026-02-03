@@ -91,6 +91,7 @@ export default function Clientes() {
   }, [canViewAllData, sector]);
 
   const handleClienteClick = (cliente: ClienteAnalise) => {
+    console.log("Cliente clicado:", cliente.codigo, cliente.nome);
     setSelectedCliente(cliente);
     setSheetOpen(true);
   };
