@@ -169,7 +169,7 @@ export function ClienteVendasSheet({ cliente, open, onOpenChange }: ClienteVenda
                             {venda.Produto}
                           </TableCell>
                           <TableCell className="text-right text-sm">
-                            {formatNumber(venda.Quant)}
+                            {formatNumber(venda["Quant."])}
                           </TableCell>
                           <TableCell className="text-right text-sm font-medium">
                             {formatCurrency(venda["Total Merc."])}

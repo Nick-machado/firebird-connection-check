@@ -24,7 +24,7 @@ export interface VendaClienteAPI {
   Nota: string;
   Produto: string;
   "Cód. Prod": string;
-  Quant: number;
+  "Quant.": number;
   "Valor Unit.": number;
   "Total NF": number;
   "Total Merc.": number;
