@@ -87,9 +87,9 @@ export function ClientesTable({ data, onClienteClick, statusFilter }: ClientesTa
                 <TableHead className="text-right">Código</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Última Compra</TableHead>
-                <TableHead>Região</TableHead>
+                <TableHead>UF</TableHead>
                 <TableHead>Atividade</TableHead>
-                <TableHead>Cidade/UF</TableHead>
+                <TableHead>Cidade</TableHead>
                 <TableHead className="w-10"></TableHead>
               </TableRow>
             </TableHeader>
@@ -134,9 +134,9 @@ export function ClientesTable({ data, onClienteClick, statusFilter }: ClientesTa
                       )}
                     </TableCell>
                     <TableCell>
-                      {cliente.regiao ? (
+                      {cliente.uf ? (
                         <Badge variant="outline" className="text-xs">
-                          {cliente.regiao}
+                          {cliente.uf}
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground">-</span>
@@ -146,9 +146,7 @@ export function ClientesTable({ data, onClienteClick, statusFilter }: ClientesTa
                       {cliente.atividade || "-"}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {cliente.cidade && cliente.uf
-                        ? `${cliente.cidade}/${cliente.uf}`
-                        : cliente.uf || "-"}
+                      {cliente.cidade || "-"}
                     </TableCell>
                     <TableCell>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />

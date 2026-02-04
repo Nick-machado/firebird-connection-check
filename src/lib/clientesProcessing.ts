@@ -146,8 +146,12 @@ export function formatarUltimaCompra(data: Date | undefined): string {
   if (dias === 1) return "Ontem";
   if (dias < 7) return `${dias} dias atrás`;
   if (dias < 30) return `${Math.floor(dias / 7)} semanas atrás`;
-  if (dias < 365) return `${Math.floor(dias / 30)} meses atrás`;
-  return `${Math.floor(dias / 365)} anos atrás`;
+  if (dias < 365) {
+    const meses = Math.floor(dias / 30);
+    return `${meses} ${meses === 1 ? "mês" : "meses"} atrás`;
+  }
+  const anos = Math.floor(dias / 365);
+  return `${anos} ${anos === 1 ? "ano" : "anos"} atrás`;
 }
 
 /**
