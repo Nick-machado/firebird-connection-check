@@ -16,10 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useMemo } from "react";
 import { useClienteVendas } from "@/hooks/useClientes";
-import { useUserRole } from "@/hooks/useUserRole";
-import { SECTOR_TO_EQUIPES } from "@/lib/constants";
 import { formatCurrency, formatNumber } from "@/lib/formatters";
 import {
   formatarUltimaCompra,
@@ -33,38 +30,10 @@ interface ClienteVendasSheetProps {
   cliente: ClienteAnalise | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  categoriasFiltro?: string[];
 }
 
-export function ClienteVendasSheet({
-  cliente,
-  open,
-  onOpenChange,
-  categoriasFiltro,
-}: ClienteVendasSheetProps) {
+export function ClienteVendasSheet({ cliente, open, onOpenChange }: ClienteVendasSheetProps) {
   const { data: vendas, isLoading, error } = useClienteVendas(cliente?.codigo || null);
-  const { sector, canViewAllData } = useUserRole();
-
-
-  const vendasFiltradas = useMemo(() => {
-    if (!vendas) return [];
-    let filtradas = vendas;
-
-    if (!canViewAllData && sector && SECTOR_TO_EQUIPES[sector]) {
-      const allowedEquipes = SECTOR_TO_EQUIPES[sector];
-      filtradas = filtradas.filter((venda) =>
-        allowedEquipes.some((eq) => (venda.Equipe || "").toUpperCase().includes(eq.toUpperCase()))
-      );
-    }
-
-    if (!categoriasFiltro || categoriasFiltro.length === 0) return filtradas;
-
-    return filtradas.filter((venda) =>
-      categoriasFiltro.some(
-        (categoria) => (venda.Categoria || "").toLowerCase() === categoria.toLowerCase()
-      )
-    );
-  }, [vendas, categoriasFiltro, canViewAllData, sector]);
 
   const formatDate = (dateStr: string) => {
     // Parse manual para evitar problema de timezone
@@ -72,14 +41,6 @@ export function ClienteVendasSheet({
     // causando shift de -1 dia quando convertidas para timezone local
     const [year, month, day] = dateStr.split("T")[0].split("-").map(Number);
     return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`;
-  };
-
-  const formatDateOnly = (date?: Date) => {
-    if (!date) return "-";
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
   };
 
   return (
@@ -135,7 +96,7 @@ export function ClienteVendasSheet({
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Última Compra:</span>
                   <span className="font-medium">
-                    {formatDateOnly(cliente.ultimaCompra)}
+                    {formatarUltimaCompra(cliente.ultimaCompra)}
                   </span>
                 </div>
                 
@@ -167,7 +128,7 @@ export function ClienteVendasSheet({
               <h4 className="font-medium mb-3 flex items-center gap-2">
                 Vendas
                 {vendas && (
-                  <Badge variant="secondary">{vendasFiltradas.length}</Badge>
+                  <Badge variant="secondary">{vendas.length}</Badge>
                 )}
               </h4>
 
@@ -179,7 +140,7 @@ export function ClienteVendasSheet({
                 <div className="text-center text-destructive py-8">
                   Erro ao carregar vendas: {(error as Error).message}
                 </div>
-              ) : vendasFiltradas.length > 0 ? (
+              ) : vendas && vendas.length > 0 ? (
                 <ScrollArea className="h-[calc(100vh-380px)]">
                   <Table>
                     <TableHeader>
@@ -193,7 +154,7 @@ export function ClienteVendasSheet({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {vendasFiltradas.map((venda, index) => (
+                      {vendas.map((venda, index) => (
                         <TableRow key={`${venda.Nota}-${venda["Cód. Prod"]}-${index}`}>
                           <TableCell className="text-sm">
                             {formatDate(venda.Data)}
@@ -239,25 +200,25 @@ export function ClienteVendasSheet({
             </div>
 
             {/* Resumo de Vendas */}
-            {vendasFiltradas.length > 0 && (
+            {vendas && vendas.length > 0 && (
               <div className="pt-4 border-t mt-auto">
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
                     <p className="text-xs text-muted-foreground">Total Vendas</p>
                     <p className="text-lg font-bold">
-                      {formatCurrency(vendasFiltradas.reduce((acc, v) => acc + (v["Total Merc."] || 0), 0))}
+                      {formatCurrency(vendas.reduce((acc, v) => acc + (v["Total Merc."] || 0), 0))}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Margem Total</p>
                     <p className="text-lg font-bold">
-                      {formatCurrency(vendasFiltradas.reduce((acc, v) => acc + (v["$ Margem"] || 0), 0))}
+                      {formatCurrency(vendas.reduce((acc, v) => acc + (v["$ Margem"] || 0), 0))}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Itens</p>
                     <p className="text-lg font-bold">
-                      {formatNumber(vendasFiltradas.length)}
+                      {formatNumber(vendas.length)}
                     </p>
                   </div>
                 </div>

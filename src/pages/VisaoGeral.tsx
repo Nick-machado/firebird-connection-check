@@ -25,8 +25,7 @@ import { CHART_COLORS, SECTOR_TO_EQUIPES } from "@/lib/constants";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, DollarSign, TrendingDown, Receipt, Package, Percent, BarChart3, FileDown, AlertCircle, Calendar } from "lucide-react";
-import { getMesNomeCompleto } from "@/lib/formatters";
+import { Loader2, DollarSign, TrendingDown, Receipt, Package, Percent, BarChart3, FileDown, AlertCircle } from "lucide-react";
 
 export default function VisaoGeral() {
   const anoAtual = new Date().getFullYear();
@@ -93,26 +92,6 @@ export default function VisaoGeral() {
       dadosAnoAnteriorFiltrados = filtrarPorEquipe(dadosAnoAnterior, equipeFilter);
     }
 
-    // KPIs do ano acumulado (todos os meses até o mês selecionado)
-    const dadosAnoAcumulado = dadosAnoAtualFiltrados.filter(
-      (item) => Number(item.Mês) <= mes
-    );
-    const dadosAnoAnteriorAcumulado = dadosAnoAnteriorFiltrados.filter(
-      (item) => Number(item.Mês) <= mes
-    );
-    
-    const kpisAno = calcularKPIs(dadosAnoAcumulado);
-    const kpisAnoAnterior = calcularKPIs(dadosAnoAnteriorAcumulado);
-
-    // Variação YoY anual
-    const variacaoFaturamentoAnual = kpisAnoAnterior.faturamentoLiquido > 0
-      ? ((kpisAno.faturamentoLiquido - kpisAnoAnterior.faturamentoLiquido) / kpisAnoAnterior.faturamentoLiquido) * 100
-      : 0;
-    
-    const variacaoMargemAnual = kpisAnoAnterior.totalMargem > 0
-      ? ((kpisAno.totalMargem - kpisAnoAnterior.totalMargem) / kpisAnoAnterior.totalMargem) * 100
-      : 0;
-
     // Dados do mês selecionado
     const dadosMesFiltrados = filtrarPorMes(dadosAnoAtualFiltrados, mes);
     const dadosMesAnteriorFiltrados = filtrarPorMes(dadosAnoAnteriorFiltrados, mes);
@@ -121,7 +100,7 @@ export default function VisaoGeral() {
     const kpisMes = calcularKPIs(dadosMesFiltrados);
     const kpisMesAnterior = calcularKPIs(dadosMesAnteriorFiltrados);
 
-    // Calcula variação YoY mensal
+    // Calcula variação YoY
     const variacaoFaturamento = kpisMesAnterior.faturamentoLiquido > 0
       ? ((kpisMes.faturamentoLiquido - kpisMesAnterior.faturamentoLiquido) / kpisMesAnterior.faturamentoLiquido) * 100
       : 0;
@@ -143,9 +122,6 @@ export default function VisaoGeral() {
     const faturamentoPorRegiao = calcularFaturamentoPorRegiao(dadosMesFiltrados);
 
     return {
-      kpisAno,
-      variacaoFaturamentoAnual,
-      variacaoMargemAnual,
       kpisMes,
       variacaoFaturamento,
       variacaoMargem,
@@ -253,127 +229,66 @@ export default function VisaoGeral() {
               </Alert>
             ) : (
               <>
-                {/* KPIs Anuais Acumulados */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    <span>Acumulado {ano} (Jan - {getMesNomeCompleto(mes)})</span>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                  <div className="animate-fade-in-up stagger-1 opacity-0">
+                    <KPICard
+                      title="Faturamento Bruto"
+                      value={dadosProcessados.kpisMes.totalFaturado}
+                      format="compact"
+                      icon={<DollarSign className="h-4 w-4" />}
+                    />
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    <div className="animate-fade-in-up stagger-1 opacity-0">
-                      <KPICard
-                        title="Fat. Bruto Ano"
-                        value={dadosProcessados.kpisAno.totalFaturado}
-                        format="compact"
-                        icon={<DollarSign className="h-4 w-4" />}
-                      />
-                    </div>
-                    <div className="animate-fade-in-up stagger-2 opacity-0">
-                      <KPICard
-                        title="Fat. Líquido Ano"
-                        value={dadosProcessados.kpisAno.faturamentoLiquido}
-                        format="compact"
-                        icon={<DollarSign className="h-4 w-4" />}
-                        trend={dadosProcessados.variacaoFaturamentoAnual}
-                        trendLabel="vs ano anterior"
-                      />
-                    </div>
-                    <div className="animate-fade-in-up stagger-3 opacity-0">
-                      <KPICard
-                        title="Devoluções Ano"
-                        value={dadosProcessados.kpisAno.totalDevolucoes}
-                        format="compact"
-                        icon={<TrendingDown className="h-4 w-4" />}
-                      />
-                    </div>
-                    <div className="animate-fade-in-up stagger-4 opacity-0">
-                      <KPICard
-                        title="Margem Ano"
-                        value={dadosProcessados.kpisAno.totalMargem}
-                        format="compact"
-                        icon={<BarChart3 className="h-4 w-4" />}
-                        trend={dadosProcessados.variacaoMargemAnual}
-                        trendLabel="vs ano anterior"
-                      />
-                    </div>
-                    <div className="animate-fade-in-up stagger-5 opacity-0">
-                      <KPICard
-                        title="Margem % Ano"
-                        value={dadosProcessados.kpisAno.margemPercentual}
-                        format="percent"
-                        icon={<Percent className="h-4 w-4" />}
-                      />
-                    </div>
+                  <div className="animate-fade-in-up stagger-2 opacity-0">
+                    <KPICard
+                      title="Fat. Líquido"
+                      value={dadosProcessados.kpisMes.faturamentoLiquido}
+                      format="compact"
+                      icon={<DollarSign className="h-4 w-4" />}
+                      trend={dadosProcessados.variacaoFaturamento}
+                      trendLabel="vs ano anterior"
+                    />
                   </div>
-                </div>
-
-                {/* KPIs do Mês */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    <span>{getMesNomeCompleto(mes)} de {ano}</span>
+                  <div className="animate-fade-in-up stagger-3 opacity-0">
+                    <KPICard
+                      title="Devoluções"
+                      value={dadosProcessados.kpisMes.totalDevolucoes}
+                      format="compact"
+                      icon={<TrendingDown className="h-4 w-4" />}
+                    />
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-                    <div className="animate-fade-in-up stagger-1 opacity-0">
-                      <KPICard
-                        title="Faturamento Bruto"
-                        value={dadosProcessados.kpisMes.totalFaturado}
-                        format="compact"
-                        icon={<DollarSign className="h-4 w-4" />}
-                      />
-                    </div>
-                    <div className="animate-fade-in-up stagger-2 opacity-0">
-                      <KPICard
-                        title="Fat. Líquido"
-                        value={dadosProcessados.kpisMes.faturamentoLiquido}
-                        format="compact"
-                        icon={<DollarSign className="h-4 w-4" />}
-                        trend={dadosProcessados.variacaoFaturamento}
-                        trendLabel="vs ano anterior"
-                      />
-                    </div>
-                    <div className="animate-fade-in-up stagger-3 opacity-0">
-                      <KPICard
-                        title="Devoluções"
-                        value={dadosProcessados.kpisMes.totalDevolucoes}
-                        format="compact"
-                        icon={<TrendingDown className="h-4 w-4" />}
-                      />
-                    </div>
-                    <div className="animate-fade-in-up stagger-4 opacity-0">
-                      <KPICard
-                        title="Notas Emitidas"
-                        value={dadosProcessados.kpisMes.totalNotas}
-                        format="number"
-                        icon={<Receipt className="h-4 w-4" />}
-                      />
-                    </div>
-                    <div className="animate-fade-in-up stagger-5 opacity-0">
-                      <KPICard
-                        title="CMV"
-                        value={dadosProcessados.kpisMes.totalCMV}
-                        format="compact"
-                        icon={<Package className="h-4 w-4" />}
-                      />
-                    </div>
-                    <div className="animate-fade-in-up stagger-6 opacity-0">
-                      <KPICard
-                        title="Margem"
-                        value={dadosProcessados.kpisMes.totalMargem}
-                        format="compact"
-                        icon={<BarChart3 className="h-4 w-4" />}
-                        trend={dadosProcessados.variacaoMargem}
-                        trendLabel="vs ano anterior"
-                      />
-                    </div>
-                    <div className="animate-fade-in-up stagger-7 opacity-0">
-                      <KPICard
-                        title="Margem %"
-                        value={dadosProcessados.kpisMes.margemPercentual}
-                        format="percent"
-                        icon={<Percent className="h-4 w-4" />}
-                      />
-                    </div>
+                  <div className="animate-fade-in-up stagger-4 opacity-0">
+                    <KPICard
+                      title="Notas Emitidas"
+                      value={dadosProcessados.kpisMes.totalNotas}
+                      format="number"
+                      icon={<Receipt className="h-4 w-4" />}
+                    />
+                  </div>
+                  <div className="animate-fade-in-up stagger-5 opacity-0">
+                    <KPICard
+                      title="CMV"
+                      value={dadosProcessados.kpisMes.totalCMV}
+                      format="compact"
+                      icon={<Package className="h-4 w-4" />}
+                    />
+                  </div>
+                  <div className="animate-fade-in-up stagger-6 opacity-0">
+                    <KPICard
+                      title="Margem"
+                      value={dadosProcessados.kpisMes.totalMargem}
+                      format="compact"
+                      icon={<BarChart3 className="h-4 w-4" />}
+                      trend={dadosProcessados.variacaoMargem}
+                      trendLabel="vs ano anterior"
+                    />
+                  </div>
+                  <div className="animate-fade-in-up stagger-7 opacity-0">
+                    <KPICard
+                      title="Margem %"
+                      value={dadosProcessados.kpisMes.margemPercentual}
+                      format="percent"
+                      icon={<Percent className="h-4 w-4" />}
+                    />
                   </div>
                 </div>
 
