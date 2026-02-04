@@ -4,6 +4,7 @@ import type {
   ClienteStatus,
   ClientesStatusData,
 } from "@/types/cliente";
+import { parseLocalDate, diffInDays } from "@/lib/dateUtils";
 
 /**
  * Converte ClienteAPI para ClienteAnalise com status calculado
@@ -12,9 +13,9 @@ export function mapClienteAPIToAnalise(
   cliente: ClienteAPI,
   dataReferencia: Date = new Date()
 ): ClienteAnalise {
-  const ultimaCompra = cliente["Últ.Compra"] ? new Date(cliente["Últ.Compra"]) : undefined;
+  const ultimaCompra = parseLocalDate(cliente["Últ.Compra"]);
   const diasSemCompra = ultimaCompra
-    ? Math.floor((dataReferencia.getTime() - ultimaCompra.getTime()) / (1000 * 60 * 60 * 24))
+    ? diffInDays(ultimaCompra, dataReferencia)
     : 9999;
 
   let status: ClienteStatus = "inativo";
@@ -36,7 +37,7 @@ export function mapClienteAPIToAnalise(
     regiao: cliente.Regiao,
     categoria: cliente.Categoria || undefined,
     ultimaCompra,
-    dataCadastro: cliente["Data Cad."] ? new Date(cliente["Data Cad."]) : undefined,
+    dataCadastro: parseLocalDate(cliente["Data Cad."]),
     situacao: cliente.Situacao,
     uf: cliente.UF,
     cidade: cliente.Cidade,

@@ -36,8 +36,11 @@ export function ClienteVendasSheet({ cliente, open, onOpenChange }: ClienteVenda
   const { data: vendas, isLoading, error } = useClienteVendas(cliente?.codigo || null);
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("pt-BR");
+    // Parse manual para evitar problema de timezone
+    // A API retorna datas no formato ISO (YYYY-MM-DD) que são interpretadas como UTC
+    // causando shift de -1 dia quando convertidas para timezone local
+    const [year, month, day] = dateStr.split("T")[0].split("-").map(Number);
+    return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`;
   };
 
   return (
