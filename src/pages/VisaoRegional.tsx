@@ -4,10 +4,9 @@ import { FiltrosVendas } from "@/components/dashboard/FiltrosVendas";
 import { BrazilMap } from "@/components/dashboard/BrazilMap";
 import { RegionalTable } from "@/components/dashboard/RegionalTable";
 import { RegionalDetailPanel } from "@/components/dashboard/RegionalDetailPanel";
-
-
 import { useVendasDoisAnos } from "@/hooks/useVendas";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useFiltros } from "@/contexts/FiltrosContext";
 import { filtrarPorEquipe, filtrarPorMes } from "@/lib/dataProcessing";
 import { SECTOR_TO_EQUIPES } from "@/lib/constants";
 import {
@@ -34,11 +33,7 @@ export default function VisaoRegional() {
   const mesAtual = new Date().getMonth() + 1;
 
   const { sector, canViewAllData, roleLabel } = useUserRole();
-
-  // Filtros gerais
-  const [ano, setAno] = useState(anoAtual);
-  const [mes, setMes] = useState(mesAtual);
-  const [equipe, setEquipe] = useState("TODAS");
+  const { ano, mes, equipe, setAno, setMes, setEquipe } = useFiltros();
 
   // Set equipe based on user sector on mount
   useEffect(() => {
@@ -48,7 +43,7 @@ export default function VisaoRegional() {
         setEquipe(allowedEquipes[0]);
       }
     }
-  }, [sector]);
+  }, [sector, setEquipe]);
 
   // Configurações do mapa
   const [metrica, setMetrica] = useState<Metrica>("faturamento");
