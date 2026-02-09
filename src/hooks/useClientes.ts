@@ -5,7 +5,7 @@ import type { ClienteAPI, VendaClienteAPI } from "@/types/cliente";
 /**
  * Hook para buscar todos os clientes da API
  */
-export function useClientes() {
+export function useClientes(enabled: boolean = true) {
   return useQuery({
     queryKey: ["clientes"],
     queryFn: async () => {
@@ -20,13 +20,14 @@ export function useClientes() {
       return result.data as ClienteAPI[];
     },
     staleTime: 1000 * 60 * 30, // 30 minutos
+    enabled,
   });
 }
 
 /**
  * Hook para buscar vendas de um cliente específico
  */
-export function useClienteVendas(clienteId: number | null) {
+export function useClienteVendas(clienteId: number | null, enabled: boolean = true) {
   return useQuery({
     queryKey: ["cliente-vendas", clienteId],
     queryFn: async () => {
@@ -46,6 +47,6 @@ export function useClienteVendas(clienteId: number | null) {
       );
     },
     staleTime: 1000 * 60 * 10, // 10 minutos
-    enabled: !!clienteId,
+    enabled: !!clienteId && enabled,
   });
 }

@@ -31,7 +31,7 @@ export default function VisaoGeral() {
   const anoAtual = new Date().getFullYear();
   const mesAtual = new Date().getMonth() + 1;
 
-  const { sector, canViewAllData, role, roleLabel } = useUserRole();
+  const { sector, canViewAllData, roleLabel, loading: roleLoading } = useUserRole();
 
   const [ano, setAno] = useState(anoAtual);
   const [mes, setMes] = useState(mesAtual);
@@ -52,7 +52,7 @@ export default function VisaoGeral() {
   }, [sector]);
 
   // Busca dados do ano atual e anterior (query só muda quando ANO muda)
-  const { data: vendasData, isLoading, error } = useVendasDoisAnos(ano);
+  const { data: vendasData, isLoading, error } = useVendasDoisAnos(ano, !roleLoading);
 
   // Processa os dados (filtros de mês/equipe aplicados localmente)
   const dadosProcessados = useMemo(() => {
@@ -135,6 +135,19 @@ export default function VisaoGeral() {
       faturamentoPorRegiao,
     };
   }, [vendasData, ano, mes, equipe, sector]);
+
+  if (roleLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Carregando permissões...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   if (isLoading) {
     return (

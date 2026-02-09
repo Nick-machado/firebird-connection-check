@@ -58,7 +58,7 @@ async function fetchAnoCompleto(ano: number): Promise<VendaItem[]> {
  * - Filtros de mês/equipe são aplicados localmente via useMemo
  * - Cache de 20 minutos para performance
  */
-export function useVendasDoisAnos(anoSelecionado: number) {
+export function useVendasDoisAnos(anoSelecionado: number, enabled: boolean = true) {
   const anoAtual = anoSelecionado;
   const anoAnterior = anoSelecionado - 1;
 
@@ -80,5 +80,6 @@ export function useVendasDoisAnos(anoSelecionado: number) {
     gcTime: 1000 * 60 * 30, // 30 minutos no garbage collector
     retry: 2,
     refetchOnWindowFocus: false, // Não refaz ao focar na janela
+    enabled,
   });
 }

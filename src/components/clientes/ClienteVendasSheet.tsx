@@ -42,8 +42,11 @@ export function ClienteVendasSheet({
   onOpenChange,
   categoriasFiltro,
 }: ClienteVendasSheetProps) {
-  const { data: vendas, isLoading, error } = useClienteVendas(cliente?.codigo || null);
-  const { sector, canViewAllData } = useUserRole();
+  const { sector, canViewAllData, loading: roleLoading } = useUserRole();
+  const { data: vendas, isLoading, error } = useClienteVendas(
+    cliente?.codigo || null,
+    !roleLoading
+  );
 
 
   const vendasFiltradas = useMemo(() => {
@@ -171,7 +174,7 @@ export function ClienteVendasSheet({
                 )}
               </h4>
 
-              {isLoading ? (
+              {roleLoading || isLoading ? (
                 <div className="flex items-center justify-center h-32">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>

@@ -22,7 +22,7 @@ import { Loader2, AlertCircle, Filter } from "lucide-react";
 import type { ClienteAnalise, ClienteStatus } from "@/types/cliente";
 
 export default function Clientes() {
-  const { roleLabel, role } = useUserRole();
+  const { roleLabel, role, loading: roleLoading } = useUserRole();
 
   const [categoriaFilter, setCategoriaFilter] = useState("TODAS");
   const [linhasSelecionadas, setLinhasSelecionadas] = useState<string[]>([]);
@@ -30,7 +30,7 @@ export default function Clientes() {
   const [selectedCliente, setSelectedCliente] = useState<ClienteAnalise | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const { data: clientesAPI, isLoading, error } = useClientes();
+  const { data: clientesAPI, isLoading, error } = useClientes(!roleLoading);
 
   const canFilterCategories = role === "admin" || role === "consultor";
 
@@ -154,6 +154,19 @@ export default function Clientes() {
     setSelectedCliente(cliente);
     setSheetOpen(true);
   };
+
+  if (roleLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Carregando permissões...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   if (isLoading) {
     return (
