@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   Sheet,
   SheetContent,
@@ -16,16 +17,15 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useMemo } from "react";
 import { useClienteVendas } from "@/hooks/useClientes";
 import { useUserRole } from "@/hooks/useUserRole";
-import { SECTOR_TO_EQUIPES } from "@/lib/constants";
 import { formatCurrency, formatNumber } from "@/lib/formatters";
 import {
   formatarUltimaCompra,
   getStatusColor,
   getStatusLabel,
 } from "@/lib/clientesProcessing";
+import { SECTOR_TO_EQUIPES } from "@/lib/constants";
 import type { ClienteAnalise } from "@/types/cliente";
 import { Loader2, Mail, MapPin, Building, Calendar, ShoppingCart } from "lucide-react";
 
@@ -33,7 +33,7 @@ interface ClienteVendasSheetProps {
   cliente: ClienteAnalise | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  categoriasFiltro?: string[];
+  categoriasFiltro?: string[] | null;
 }
 
 export function ClienteVendasSheet({
@@ -42,11 +42,8 @@ export function ClienteVendasSheet({
   onOpenChange,
   categoriasFiltro,
 }: ClienteVendasSheetProps) {
+  const { data: vendas, isLoading, error } = useClienteVendas(cliente?.codigo || null);
   const { sector, canViewAllData, loading: roleLoading } = useUserRole();
-  const { data: vendas, isLoading, error } = useClienteVendas(
-    cliente?.codigo || null,
-    !roleLoading
-  );
 
 
   const vendasFiltradas = useMemo(() => {
@@ -75,14 +72,6 @@ export function ClienteVendasSheet({
     // causando shift de -1 dia quando convertidas para timezone local
     const [year, month, day] = dateStr.split("T")[0].split("-").map(Number);
     return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`;
-  };
-
-  const formatDateOnly = (date?: Date) => {
-    if (!date) return "-";
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
   };
 
   return (
@@ -138,7 +127,7 @@ export function ClienteVendasSheet({
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Última Compra:</span>
                   <span className="font-medium">
-                    {formatDateOnly(cliente.ultimaCompra)}
+                    {formatarUltimaCompra(cliente.ultimaCompra)}
                   </span>
                 </div>
                 
@@ -169,7 +158,7 @@ export function ClienteVendasSheet({
             <div className="flex-1 overflow-hidden">
               <h4 className="font-medium mb-3 flex items-center gap-2">
                 Vendas
-                {vendas && (
+                {vendasFiltradas && (
                   <Badge variant="secondary">{vendasFiltradas.length}</Badge>
                 )}
               </h4>
@@ -182,7 +171,7 @@ export function ClienteVendasSheet({
                 <div className="text-center text-destructive py-8">
                   Erro ao carregar vendas: {(error as Error).message}
                 </div>
-              ) : vendasFiltradas.length > 0 ? (
+              ) : vendasFiltradas && vendasFiltradas.length > 0 ? (
                 <ScrollArea className="h-[calc(100vh-380px)]">
                   <Table>
                     <TableHeader>
@@ -242,19 +231,23 @@ export function ClienteVendasSheet({
             </div>
 
             {/* Resumo de Vendas */}
-            {vendasFiltradas.length > 0 && (
+            {vendasFiltradas && vendasFiltradas.length > 0 && (
               <div className="pt-4 border-t mt-auto">
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
                     <p className="text-xs text-muted-foreground">Total Vendas</p>
                     <p className="text-lg font-bold">
-                      {formatCurrency(vendasFiltradas.reduce((acc, v) => acc + (v["Total Merc."] || 0), 0))}
+                      {formatCurrency(
+                        vendasFiltradas.reduce((acc, v) => acc + (v["Total Merc."] || 0), 0)
+                      )}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Margem Total</p>
                     <p className="text-lg font-bold">
-                      {formatCurrency(vendasFiltradas.reduce((acc, v) => acc + (v["$ Margem"] || 0), 0))}
+                      {formatCurrency(
+                        vendasFiltradas.reduce((acc, v) => acc + (v["$ Margem"] || 0), 0)
+                      )}
                     </p>
                   </div>
                   <div>

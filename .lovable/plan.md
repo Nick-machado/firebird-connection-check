@@ -1,63 +1,140 @@
 
-# Plano de Correção: Cliente ID undefined
+# Diagnóstico e Correção: Faturamento Incorreto (R$ 680k vs R$ 4.6M)
 
 ## Problema Identificado
 
-O campo de código do cliente está vindo da API como `"Cód. Cli"` (com acento no "ó"), mas o código está tentando acessar `"Cod. Cli"` (sem acento). Isso faz com que todos os clientes tenham `codigo: undefined`, impedindo:
+O valor de janeiro/2026 deveria ser ~R$ 4.6M, mas mostra ~R$ 680k e "muda sozinho" ao navegar entre páginas.
 
-1. A busca de vendas do cliente (API não é chamada)
-2. O Sheet de abrir corretamente (depende do código para buscar vendas)
-3. A key do mapeamento da tabela (usa codigo como key)
+---
 
-## Evidência
+## Causa Raiz: Estado Local Reinicializado
 
-Console log mostra:
+O filtro de mês é inicializado com `new Date().getMonth() + 1` (Fevereiro = 2) **toda vez que o componente é montado**.
+
+```typescript
+// src/pages/VisaoGeral.tsx - linha 32
+const mesAtual = new Date().getMonth() + 1; // = 2 (Fevereiro)
+const [mes, setMes] = useState(mesAtual);    // Sempre inicia em Fevereiro!
 ```
-Cliente clicado: undefined VEMILER MATERIAL DE CONSTRUCAO LTDA
-```
+
+**Comportamento:**
+1. Você seleciona Janeiro (mes=1) - vê R$ 4.6M
+2. Navega para outra página
+3. Volta para Visão Geral - componente remonta
+4. Estado reinicia para `mesAtual` (Fevereiro = 2)
+5. Vê R$ 680k (valor de Fevereiro)
+
+**Nota:** O cache do React Query mantém os dados, mas o filtro de mês reseta.
+
+---
 
 ## Solução
 
-### Arquivo: `src/types/cliente.ts`
+### Abordagem: Persistir Filtros via Context ou URL
 
-Corrigir o nome do campo na interface ClienteAPI:
+A melhor solução é manter os filtros **fora do componente**, usando um Context global ou sincronizando com a URL.
+
+**Opção recomendada: Context para filtros**
+- Cria um `FiltrosContext` que mantém ano/mês/equipe
+- Todos os componentes de dashboard usam esse contexto
+- Filtros persistem enquanto o usuário estiver na aplicação
+
+### Arquivos a Criar/Modificar
+
+| Arquivo | Ação |
+|---------|------|
+| `src/contexts/FiltrosContext.tsx` | **Criar** - Context com ano, mês, equipe |
+| `src/pages/VisaoGeral.tsx` | **Modificar** - Usar context em vez de useState local |
+| `src/pages/VisaoRegional.tsx` | **Modificar** - Usar context em vez de useState local |
+| `src/App.tsx` | **Modificar** - Wrap com FiltrosProvider |
+
+---
+
+## Detalhes Técnicos
+
+### 1. Criar FiltrosContext
 
 ```typescript
-// Linha 5 - DE:
-"Cod. Cli": number;
+// src/contexts/FiltrosContext.tsx
+import { createContext, useContext, useState, ReactNode } from "react";
 
-// PARA:
-"Cód. Cli": number;
+interface FiltrosContextType {
+  ano: number;
+  mes: number;
+  equipe: string;
+  setAno: (ano: number) => void;
+  setMes: (mes: number) => void;
+  setEquipe: (equipe: string) => void;
+}
+
+const FiltrosContext = createContext<FiltrosContextType | undefined>(undefined);
+
+export function FiltrosProvider({ children }: { children: ReactNode }) {
+  const anoAtual = new Date().getFullYear();
+  const mesAtual = new Date().getMonth() + 1;
+  
+  const [ano, setAno] = useState(anoAtual);
+  const [mes, setMes] = useState(mesAtual);
+  const [equipe, setEquipe] = useState("TODAS");
+  
+  return (
+    <FiltrosContext.Provider value={{ ano, mes, equipe, setAno, setMes, setEquipe }}>
+      {children}
+    </FiltrosContext.Provider>
+  );
+}
+
+export function useFiltros() {
+  const context = useContext(FiltrosContext);
+  if (!context) {
+    throw new Error("useFiltros deve ser usado dentro de FiltrosProvider");
+  }
+  return context;
+}
 ```
 
-### Arquivo: `src/lib/clientesProcessing.ts`
-
-Corrigir a referência ao campo na função de mapeamento:
+### 2. Modificar VisaoGeral.tsx
 
 ```typescript
-// Linha 28 - DE:
-codigo: cliente["Cod. Cli"],
+// Antes (problemático):
+const [ano, setAno] = useState(anoAtual);
+const [mes, setMes] = useState(mesAtual);
+const [equipe, setEquipe] = useState("TODAS");
 
-// PARA:
-codigo: cliente["Cód. Cli"],
+// Depois (corrigido):
+const { ano, mes, equipe, setAno, setMes, setEquipe } = useFiltros();
 ```
 
-## Impacto da Correção
+### 3. Wrap App com Provider
 
-Após essas mudanças:
-- Todos os clientes terão seu código corretamente mapeado
-- A tabela de clientes usará keys únicas (codigo)
-- Clicar em um cliente abrirá o Sheet
-- A API `/clientes/{id}/vendas` será chamada com o ID correto
-- As vendas do cliente serão exibidas no painel lateral
+```typescript
+// src/App.tsx
+import { FiltrosProvider } from "./contexts/FiltrosContext";
 
-## Arquivos a Modificar
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <FiltrosProvider>
+      {/* resto do app */}
+    </FiltrosProvider>
+  </QueryClientProvider>
+);
+```
 
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/types/cliente.ts` | Linha 5: `"Cod. Cli"` -> `"Cód. Cli"` |
-| `src/lib/clientesProcessing.ts` | Linha 28: `cliente["Cod. Cli"]` -> `cliente["Cód. Cli"]` |
+---
 
-## Complexidade
+## Resultado Esperado
 
-Baixa - apenas 2 linhas de código precisam ser alteradas (correção de typo/encoding).
+Após a correção:
+- Selecionar Janeiro/2026 mostra R$ 4.6M
+- Navegar entre páginas mantém o filtro em Janeiro
+- Voltar para Visão Geral continua mostrando Janeiro/R$ 4.6M
+- Filtros só mudam quando o usuário explicitamente altera
+
+---
+
+## Resumo das Alterações
+
+1. Criar `src/contexts/FiltrosContext.tsx`
+2. Modificar `src/App.tsx` para incluir o Provider
+3. Modificar `src/pages/VisaoGeral.tsx` para usar o context
+4. Modificar `src/pages/VisaoRegional.tsx` para usar o context

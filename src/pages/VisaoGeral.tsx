@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useMemo, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { FiltrosVendas } from "@/components/dashboard/FiltrosVendas";
 import { KPICard } from "@/components/dashboard/KPICard";
@@ -7,7 +7,8 @@ import { FaturamentoCanalChart } from "@/components/dashboard/FaturamentoCanalCh
 import { TopItemsChart } from "@/components/dashboard/TopItemsChart";
 import { MargemCanalChart } from "@/components/dashboard/MargemCanalChart";
 import { useVendasDoisAnos } from "@/hooks/useVendas";
-import { useUserRole, ROLE_LABELS } from "@/hooks/useUserRole";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useFiltros } from "@/contexts/FiltrosContext";
 import {
   filtrarPorEquipe,
   filtrarPorMes,
@@ -32,24 +33,17 @@ export default function VisaoGeral() {
   const mesAtual = new Date().getMonth() + 1;
 
   const { sector, canViewAllData, roleLabel, loading: roleLoading } = useUserRole();
-
-  const [ano, setAno] = useState(anoAtual);
-  const [mes, setMes] = useState(mesAtual);
-  const [equipe, setEquipe] = useState("TODAS");
+  const { ano, mes, equipe, setAno, setMes, setEquipe } = useFiltros();
 
   // Set equipe based on user sector on mount
   useEffect(() => {
     if (sector && SECTOR_TO_EQUIPES[sector]) {
-      // If user has a sector, set the first allowed equipe
       const allowedEquipes = SECTOR_TO_EQUIPES[sector];
       if (allowedEquipes.length === 1) {
         setEquipe(allowedEquipes[0]);
-      } else if (allowedEquipes.length > 1) {
-        // For exportacao which has multiple, we could set "TODAS" but filter later
-        setEquipe("TODAS");
       }
     }
-  }, [sector]);
+  }, [sector, setEquipe]);
 
   // Busca dados do ano atual e anterior (query só muda quando ANO muda)
   const { data: vendasData, isLoading, error } = useVendasDoisAnos(ano, !roleLoading);
