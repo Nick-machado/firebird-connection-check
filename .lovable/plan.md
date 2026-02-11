@@ -1,87 +1,111 @@
 
 
-# Integrar Nova Rota de Devoluções (`/api/vendas/devolucao`)
+# Refatoracao Completa da Logica de Filtros
 
-## O que muda
+## Bugs Encontrados
 
-A nova rota retorna devoluções com formato diferente do endpoint principal. Esses valores precisam ser **somados** as devoluções existentes (Flag Tipo = "D") para que o faturamento liquido seja calculado corretamente.
+### Bug 1 (CRITICO): `.includes()` causa contaminacao cruzada de dados
 
-**Campos da nova rota:**
-| Campo | Uso |
-|-------|-----|
-| `TOTAL_LIQ` | Valor da devolucao (equivale a `Total NF`) |
-| `ENTREGA` | Data (para extrair mes/ano) |
-| `Equipe` | Filtro por equipe |
+Em `VisaoGeral.tsx` (linhas 82-83) e `VisaoRegional.tsx` (linhas 63-64), o filtro por setor usa:
+
+```typescript
+v.Equipe?.toUpperCase().includes(eq.toUpperCase())
+```
+
+O problema: `"EXPORTACAO VAREJO".includes("VAREJO")` retorna `true`. Isso significa que usuarios do setor Varejo veem dados de Exportacao Varejo misturados, inflando os valores. O correto e comparacao exata com `.trim()`.
+
+### Bug 2: VisaoRegional ignora a selecao de equipe para usuarios com setor
+
+A funcao `filtrarPorSetor` na VisaoRegional (linhas 60-68) sempre filtra por todas as equipes do setor quando `sector` existe, independente do que o usuario selecionou no dropdown. Se um usuario de exportacao selecionar "EXPORTACAO VAREJO" especificamente, o filtro ignora e mostra ambas as equipes de exportacao.
+
+### Bug 3: Inconsistencia de case-sensitivity entre filtros
+
+- `filtrarPorEquipe`: comparacao exata, case-sensitive (`item.Equipe?.trim() === equipe`)
+- `filtrarDevolucoesExtraPorEquipe`: case-insensitive (`.toUpperCase()`)
+- Caminho SECTOR_FILTER: `.includes()` com `.toUpperCase()`
+
+Se os dados da API vierem com caixa diferente (ex: "Varejo" vs "VAREJO"), um filtro funciona e o outro nao.
+
+### Bug 4: VisaoRegional nao processa devolucoesExtra
+
+A pagina regional ignora completamente os dados de `devolucoesExtra` da rota `/api/vendas/devolucao`, mostrando valores de faturamento incorretos.
+
+### Bug 5: Logica duplicada e divergente entre as paginas
+
+VisaoGeral e VisaoRegional implementam a mesma logica de filtro de setor de formas diferentes, causando resultados inconsistentes entre as duas telas.
 
 ---
 
-## Arquivos a Criar/Modificar
+## Solucao
+
+Centralizar TODA a logica de filtro em funcoes reutilizaveis no `dataProcessing.ts`, eliminando logica duplicada nas paginas.
+
+### Arquivos a modificar
 
 | Arquivo | Acao |
 |---------|------|
-| `src/types/venda.ts` | Criar interface `DevolucaoExtraItem` |
-| `src/hooks/useVendas.ts` | Criar `fetchDevolucoesExtra` e buscar em paralelo com vendas |
-| `src/lib/dataProcessing.ts` | Alterar `calcularKPIs` e `calcularFaturamentoMensal` para receber devoluções extras |
-| `src/pages/VisaoGeral.tsx` | Passar devoluções extras para as funções de processamento |
-| `src/pages/VisaoRegional.tsx` | Idem |
+| `src/lib/dataProcessing.ts` | Criar funcao centralizada `filtrarDadosPorEquipeOuSetor` |
+| `src/pages/VisaoGeral.tsx` | Substituir logica duplicada pela funcao centralizada |
+| `src/pages/VisaoRegional.tsx` | Substituir `filtrarPorSetor` pela funcao centralizada |
 
----
+### Detalhes tecnicos
 
-## Detalhes Tecnicos
+#### 1. `dataProcessing.ts` - Normalizar e centralizar
 
-### 1. Nova interface (`src/types/venda.ts`)
+- Alterar `filtrarPorEquipe` para usar `.trim().toUpperCase()` em ambos os lados (comparacao exata, case-insensitive)
+- Alterar `filtrarDevolucoesExtraPorEquipe` para o mesmo padrao
+- Criar funcao `filtrarDadosComSetor` que recebe os dados, equipe selecionada, e sector, e retorna os dados filtrados corretamente:
+  - Se `sector` existe e `equipe === "TODAS"`: filtra por equipes do setor usando comparacao EXATA (nao `.includes()`)
+  - Se `sector` existe e equipe especifica: usa essa equipe (validando que pertence ao setor)
+  - Se `sector` nao existe (admin): usa `filtrarPorEquipe` normalmente
+- Criar versao equivalente para `DevolucaoExtraItem`
+
+#### 2. `VisaoGeral.tsx` - Simplificar
+
+Remover toda a logica de SECTOR_FILTER (linhas 62-98) e substituir por uma unica chamada a funcao centralizada.
+
+#### 3. `VisaoRegional.tsx` - Corrigir e alinhar
+
+- Remover funcao `filtrarPorSetor` local (linhas 60-68)
+- Usar a mesma funcao centralizada
+- Adicionar processamento de `devolucoesExtra` (que esta completamente ausente)
+
+### Exemplo da funcao centralizada
 
 ```typescript
-export interface DevolucaoExtraItem {
-  Nota: number;
-  ID: number;
-  ENTREGA: string;
-  Fornecedor: number;
-  TOTAL_LIQ: number;
-  "Referência": string;
-  Equipe: string;
+export function filtrarDadosComSetor(
+  dados: VendaItem[],
+  equipe: string,
+  sector: string | null
+): VendaItem[] {
+  // Admin/consultor sem setor: filtro simples
+  if (!sector) {
+    return filtrarPorEquipe(dados, equipe);
+  }
+
+  const allowedEquipes = SECTOR_TO_EQUIPES[sector];
+  if (!allowedEquipes) return filtrarPorEquipe(dados, equipe);
+
+  // Setor com equipe especifica selecionada
+  if (equipe !== "TODAS" && allowedEquipes.some(
+    eq => eq.toUpperCase() === equipe.toUpperCase()
+  )) {
+    return filtrarPorEquipe(dados, equipe);
+  }
+
+  // Setor com "TODAS" - filtra por todas as equipes permitidas (EXATA)
+  return dados.filter(item => 
+    allowedEquipes.some(eq => 
+      item.Equipe?.trim().toUpperCase() === eq.toUpperCase()
+    )
+  );
 }
 ```
 
-### 2. Buscar devoluções extras (`src/hooks/useVendas.ts`)
+### Resultado esperado
 
-- Nova funcao `fetchDevolucoesExtra(dataInicio, dataFim)` chamando `/api/vendas/devolucao`
-- Nova funcao `fetchDevolucoesAnoCompleto(ano)` fazendo 12 requisicoes em paralelo (mesmo padrao)
-- Dentro de `useVendasDoisAnos`, buscar devoluções extras em paralelo junto com as vendas
-- Retornar `devolucoesExtra` no resultado da query
+- Valores consistentes entre Visao Geral e Visao Regional
+- Sem contaminacao de dados de exportacao nos dados de varejo
+- Filtro de equipe funciona corretamente em todas as paginas
+- Devolucoes extras refletidas na visao regional
 
-### 3. Somar devoluções no processamento (`src/lib/dataProcessing.ts`)
-
-- `calcularKPIs` recebe parametro opcional `devolucoesExtra: DevolucaoExtraItem[]`
-  - Soma `TOTAL_LIQ` de cada item ao `totalDevolucoes` existente
-  - Filtra por equipe antes de somar
-- `calcularFaturamentoMensal` recebe o mesmo parametro
-  - Extrai mes de `ENTREGA` e soma ao mapa `devolucoesPorMes`
-
-### 4. Passar dados nas paginas
-
-- `VisaoGeral.tsx` e `VisaoRegional.tsx`: filtrar `devolucoesExtra` por equipe e mes, e passar para `calcularKPIs` e `calcularFaturamentoMensal`
-
----
-
-## Fluxo de Dados
-
-```text
-useVendasDoisAnos
-  |-- fetchAnoCompleto(2026)     --> vendas + devoluções Flag "D"
-  |-- fetchAnoCompleto(2025)     --> vendas + devoluções Flag "D"  
-  |-- fetchDevolucoesAno(2026)   --> devoluções extras (nova rota)
-  |-- fetchDevolucoesAno(2025)   --> devoluções extras (nova rota)
-  |
-  v
-calcularKPIs(dadosMes, devolucoesExtraMes)
-  totalDevolucoes = Flag "D" + TOTAL_LIQ extras
-  faturamentoLiquido = totalFaturado - totalDevolucoes
-```
-
-## Resultado
-
-- KPI "Devoluções" mostrara a soma das duas fontes
-- KPI "Fat. Liquido" sera Faturamento Bruto menos todas as devoluções
-- Grafico de faturamento mensal tambem refletira as devoluções extras
-- Filtro de equipe sera aplicado tambem nas devoluções extras
