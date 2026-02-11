@@ -26,11 +26,13 @@ export function formatPercent(value: number): string {
 }
 
 export function formatCompactCurrency(value: number): string {
-  if (value >= 1000000) {
-    return `R$ ${formatNumber(value / 1000000, 2)}M`;
+  const abs = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+  if (abs >= 1000000) {
+    return `${sign}R$ ${formatNumber(abs / 1000000, 3)}M`;
   }
-  if (value >= 1000) {
-    return `R$ ${formatNumber(value / 1000, 1)}K`;
+  if (abs >= 1000) {
+    return `${sign}R$ ${formatNumber(abs / 1000, 2)}K`;
   }
   return formatCurrency(value);
 }
