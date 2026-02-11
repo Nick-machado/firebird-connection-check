@@ -6,6 +6,7 @@ interface VendasResponse {
   success: boolean;
   data: VendaItem[];
   error?: string;
+  meta?: { total: number; queryTime: string; fetchedAt: string };
 }
 
 interface DevolucoesExtraResponse {
@@ -22,6 +23,16 @@ async function fetchVendas(dataInicio: string, dataFim: string): Promise<VendaIt
 
   if (!result.success) {
     throw new Error(result.error || "Erro ao buscar dados");
+  }
+
+  // Detectar truncamento de dados
+  if (result.meta && result.meta.total > result.data.length) {
+    console.warn(
+      `⚠️ TRUNCAMENTO DETECTADO para ${dataInicio}-${dataFim}: ` +
+      `API retornou ${result.data.length} de ${result.meta.total} registros`
+    );
+  } else if (result.meta) {
+    console.log(`✅ ${dataInicio}-${dataFim}: ${result.data.length}/${result.meta.total} registros`);
   }
 
   return result.data;
@@ -112,8 +123,8 @@ export function useVendasDoisAnos(anoSelecionado: number, enabled: boolean = tru
         },
       };
     },
-    staleTime: 1000 * 60 * 20,
-    gcTime: 1000 * 60 * 30,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 15,
     retry: 2,
     refetchOnWindowFocus: false,
     enabled,
