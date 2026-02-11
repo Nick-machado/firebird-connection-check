@@ -12,6 +12,8 @@ import { useFiltros } from "@/contexts/FiltrosContext";
 import {
   filtrarPorEquipe,
   filtrarPorMes,
+  filtrarDevolucoesExtraPorEquipe,
+  filtrarDevolucoesExtraPorMes,
   calcularKPIs,
   calcularFaturamentoMensal,
   calcularFaturamentoPorCanal,
@@ -54,14 +56,14 @@ export default function VisaoGeral() {
 
     const dadosAnoAtual = vendasData.anoAtual.data;
     const dadosAnoAnterior = vendasData.anoAnterior.data;
+    const devExtraAnoAtual = vendasData.devolucoesExtra?.anoAtual || [];
+    const devExtraAnoAnterior = vendasData.devolucoesExtra?.anoAnterior || [];
 
     // If user has a sector restriction, filter by allowed equipes
     let equipeFilter = equipe;
     if (sector && SECTOR_TO_EQUIPES[sector]) {
       const allowedEquipes = SECTOR_TO_EQUIPES[sector];
-      // If current equipe is not in allowed list, use the first allowed
       if (equipe === "TODAS") {
-        // Filter will be applied per allowed equipe and combined
         equipeFilter = "SECTOR_FILTER";
       } else if (!allowedEquipes.includes(equipe)) {
         equipeFilter = allowedEquipes[0];
@@ -71,6 +73,8 @@ export default function VisaoGeral() {
     // Apply sector-based filtering
     let dadosAnoAtualFiltrados;
     let dadosAnoAnteriorFiltrados;
+    let devExtraAtualFiltrados;
+    let devExtraAnteriorFiltrados;
 
     if (equipeFilter === "SECTOR_FILTER" && sector) {
       const allowedEquipes = SECTOR_TO_EQUIPES[sector];
@@ -80,19 +84,28 @@ export default function VisaoGeral() {
       dadosAnoAnteriorFiltrados = dadosAnoAnterior.filter(
         (v) => allowedEquipes.some((eq) => v.Equipe?.toUpperCase().includes(eq.toUpperCase()))
       );
+      devExtraAtualFiltrados = devExtraAnoAtual.filter(
+        (v) => allowedEquipes.some((eq) => v.Equipe?.toUpperCase().includes(eq.toUpperCase()))
+      );
+      devExtraAnteriorFiltrados = devExtraAnoAnterior.filter(
+        (v) => allowedEquipes.some((eq) => v.Equipe?.toUpperCase().includes(eq.toUpperCase()))
+      );
     } else {
-      // Regular equipe filter
       dadosAnoAtualFiltrados = filtrarPorEquipe(dadosAnoAtual, equipeFilter);
       dadosAnoAnteriorFiltrados = filtrarPorEquipe(dadosAnoAnterior, equipeFilter);
+      devExtraAtualFiltrados = filtrarDevolucoesExtraPorEquipe(devExtraAnoAtual, equipeFilter);
+      devExtraAnteriorFiltrados = filtrarDevolucoesExtraPorEquipe(devExtraAnoAnterior, equipeFilter);
     }
 
     // Dados do mês selecionado
     const dadosMesFiltrados = filtrarPorMes(dadosAnoAtualFiltrados, mes);
     const dadosMesAnteriorFiltrados = filtrarPorMes(dadosAnoAnteriorFiltrados, mes);
+    const devExtraMes = filtrarDevolucoesExtraPorMes(devExtraAtualFiltrados, mes);
+    const devExtraMesAnterior = filtrarDevolucoesExtraPorMes(devExtraAnteriorFiltrados, mes);
 
     // KPIs do mês
-    const kpisMes = calcularKPIs(dadosMesFiltrados);
-    const kpisMesAnterior = calcularKPIs(dadosMesAnteriorFiltrados);
+    const kpisMes = calcularKPIs(dadosMesFiltrados, devExtraMes);
+    const kpisMesAnterior = calcularKPIs(dadosMesAnteriorFiltrados, devExtraMesAnterior);
 
     // Calcula variação YoY
     const variacaoFaturamento = kpisMesAnterior.faturamentoLiquido > 0
@@ -104,8 +117,8 @@ export default function VisaoGeral() {
       : 0;
 
     // Faturamento mensal para gráfico
-    const faturamentoMensalAtual = calcularFaturamentoMensal(dadosAnoAtualFiltrados, ano);
-    const faturamentoMensalAnterior = calcularFaturamentoMensal(dadosAnoAnteriorFiltrados, ano - 1);
+    const faturamentoMensalAtual = calcularFaturamentoMensal(dadosAnoAtualFiltrados, ano, devExtraAtualFiltrados);
+    const faturamentoMensalAnterior = calcularFaturamentoMensal(dadosAnoAnteriorFiltrados, ano - 1, devExtraAnteriorFiltrados);
 
     // Outras métricas do mês
     const faturamentoPorCanal = calcularFaturamentoPorCanal(dadosMesFiltrados);

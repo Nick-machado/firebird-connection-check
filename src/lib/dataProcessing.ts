@@ -1,4 +1,4 @@
-import type { VendaItem, KPIData, FaturamentoMensal, FaturamentoPorCanal, TopItem } from "@/types/venda";
+import type { VendaItem, KPIData, FaturamentoMensal, FaturamentoPorCanal, TopItem, DevolucaoExtraItem } from "@/types/venda";
 import { getMesNome } from "./formatters";
 
 // Filtra vendas por equipe
@@ -19,12 +19,30 @@ export function separarVendasDevolucoes(data: VendaItem[]) {
   return { vendas, devolucoes };
 }
 
+// Filtra devoluções extras por equipe
+export function filtrarDevolucoesExtraPorEquipe(data: DevolucaoExtraItem[], equipe: string): DevolucaoExtraItem[] {
+  if (equipe === "TODAS") return data;
+  return data.filter((item) => item.Equipe?.trim().toUpperCase() === equipe.toUpperCase());
+}
+
+// Filtra devoluções extras por mês (extrai do campo ENTREGA)
+export function filtrarDevolucoesExtraPorMes(data: DevolucaoExtraItem[], mes: number): DevolucaoExtraItem[] {
+  return data.filter((item) => {
+    if (!item.ENTREGA) return false;
+    const datePart = item.ENTREGA.split("T")[0];
+    const month = parseInt(datePart.split("-")[1], 10);
+    return month === mes;
+  });
+}
+
 // Calcula KPIs principais
-export function calcularKPIs(data: VendaItem[]): KPIData {
+export function calcularKPIs(data: VendaItem[], devolucoesExtra: DevolucaoExtraItem[] = []): KPIData {
   const { vendas, devolucoes } = separarVendasDevolucoes(data);
 
   const totalFaturado = vendas.reduce((sum, item) => sum + (item["Total NF"] || 0), 0);
-  const totalDevolucoes = Math.abs(devolucoes.reduce((sum, item) => sum + (item["Total NF"] || 0), 0));
+  const totalDevolucoesBase = Math.abs(devolucoes.reduce((sum, item) => sum + (item["Total NF"] || 0), 0));
+  const totalDevolucoesExtra = devolucoesExtra.reduce((sum, item) => sum + (item.TOTAL_LIQ || 0), 0);
+  const totalDevolucoes = totalDevolucoesBase + totalDevolucoesExtra;
   const faturamentoLiquido = totalFaturado - totalDevolucoes;
   const totalCMV = Math.abs(vendas.reduce((sum, item) => sum + (item["Vlr.CMV"] || 0), 0));
   const totalMargem = vendas.reduce((sum, item) => sum + (item["$ Margem"] || 0), 0);
@@ -49,7 +67,7 @@ export function calcularKPIs(data: VendaItem[]): KPIData {
 }
 
 // Calcula faturamento mensal (bruto e líquido)
-export function calcularFaturamentoMensal(data: VendaItem[], ano: number): FaturamentoMensal[] {
+export function calcularFaturamentoMensal(data: VendaItem[], ano: number, devolucoesExtra: DevolucaoExtraItem[] = []): FaturamentoMensal[] {
   const { vendas, devolucoes } = separarVendasDevolucoes(data);
 
   const faturamentoBrutoPorMes = new Map<number, number>();
@@ -64,12 +82,23 @@ export function calcularFaturamentoMensal(data: VendaItem[], ano: number): Fatur
     }
   });
 
-  // Soma devoluções
+  // Soma devoluções base (Flag "D")
   devolucoes.forEach((item) => {
     const mes = Number(item.Mês);
     if (!isNaN(mes) && mes >= 1 && mes <= 12) {
       const atual = devolucoesPorMes.get(mes) || 0;
       devolucoesPorMes.set(mes, atual + Math.abs(item["Total NF"] || 0));
+    }
+  });
+
+  // Soma devoluções extras (nova rota)
+  devolucoesExtra.forEach((item) => {
+    if (!item.ENTREGA) return;
+    const datePart = item.ENTREGA.split("T")[0];
+    const mes = parseInt(datePart.split("-")[1], 10);
+    if (!isNaN(mes) && mes >= 1 && mes <= 12) {
+      const atual = devolucoesPorMes.get(mes) || 0;
+      devolucoesPorMes.set(mes, atual + (item.TOTAL_LIQ || 0));
     }
   });
 
