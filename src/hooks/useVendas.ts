@@ -59,41 +59,17 @@ function getUltimoDiaMes(mes: number, ano: number): number {
 }
 
 /**
- * Busca dados de um ano inteiro fazendo 12 requisições em paralelo (uma por mês)
+ * Busca dados de um ano inteiro com uma única requisição
  */
 async function fetchAnoCompleto(ano: number): Promise<VendaItem[]> {
-  const promessasMeses = Array.from({ length: 12 }, (_, i) => {
-    const mes = i + 1;
-    const mesFormatado = mes.toString().padStart(2, "0");
-    const ultimoDia = getUltimoDiaMes(mes, ano);
-    
-    const dataInicio = `01/${mesFormatado}/${ano}`;
-    const dataFim = `${ultimoDia}/${mesFormatado}/${ano}`;
-    
-    return fetchVendas(dataInicio, dataFim);
-  });
-
-  const resultadosMeses = await Promise.all(promessasMeses);
-  return resultadosMeses.flat();
+  return fetchVendas(`01/01/${ano}`, `31/12/${ano}`);
 }
 
 /**
- * Busca devoluções extras de um ano inteiro fazendo 12 requisições em paralelo
+ * Busca devoluções extras de um ano inteiro com uma única requisição
  */
 async function fetchDevolucoesAnoCompleto(ano: number): Promise<DevolucaoExtraItem[]> {
-  const promessasMeses = Array.from({ length: 12 }, (_, i) => {
-    const mes = i + 1;
-    const mesFormatado = mes.toString().padStart(2, "0");
-    const ultimoDia = getUltimoDiaMes(mes, ano);
-    
-    const dataInicio = `01/${mesFormatado}/${ano}`;
-    const dataFim = `${ultimoDia}/${mesFormatado}/${ano}`;
-    
-    return fetchDevolucoesExtra(dataInicio, dataFim);
-  });
-
-  const resultadosMeses = await Promise.all(promessasMeses);
-  return resultadosMeses.flat();
+  return fetchDevolucoesExtra(`01/01/${ano}`, `31/12/${ano}`);
 }
 
 /**
