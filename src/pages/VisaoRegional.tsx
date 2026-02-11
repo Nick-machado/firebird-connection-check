@@ -7,7 +7,7 @@ import { RegionalDetailPanel } from "@/components/dashboard/RegionalDetailPanel"
 import { useVendasDoisAnos } from "@/hooks/useVendas";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useFiltros } from "@/contexts/FiltrosContext";
-import { filtrarPorEquipe, filtrarPorMes, filtrarDevolucoesExtraPorEquipe, filtrarDevolucoesExtraPorMes } from "@/lib/dataProcessing";
+import { filtrarPorMes, filtrarDadosComSetor, filtrarDevolucoesExtraComSetor, filtrarDevolucoesExtraPorMes } from "@/lib/dataProcessing";
 import { SECTOR_TO_EQUIPES } from "@/lib/constants";
 import {
   calcularDadosPorUF,
@@ -56,34 +56,24 @@ export default function VisaoRegional() {
   // Busca dados
   const { data: vendasData, isLoading, error } = useVendasDoisAnos(ano);
 
-  // Helper para filtrar dados por setor
-  const filtrarPorSetor = (dados: typeof vendasData.anoAtual.data) => {
-    if (sector && SECTOR_TO_EQUIPES[sector]) {
-      const allowedEquipes = SECTOR_TO_EQUIPES[sector];
-      return dados.filter(
-        (v) => allowedEquipes.some((eq) => v.Equipe?.toUpperCase().includes(eq.toUpperCase()))
-      );
-    }
-    return filtrarPorEquipe(dados, equipe);
-  };
-
   // Processa os dados regionais com variações
   const dadosProcessados = useMemo(() => {
     if (!vendasData) return null;
 
+    // Filtrar por equipe/setor usando função centralizada
+    const dadosAnoAtualFiltrados = filtrarDadosComSetor(vendasData.anoAtual.data, equipe, sector);
+    const dadosFonteAnoAnterior = filtrarDadosComSetor(vendasData.anoAnterior.data, equipe, sector);
+
     // Dados do mês atual
-    let dadosMesAtual = filtrarPorSetor(vendasData.anoAtual.data);
-    dadosMesAtual = filtrarPorMes(dadosMesAtual, mes);
+    const dadosMesAtual = filtrarPorMes(dadosAnoAtualFiltrados, mes);
 
     // Dados do mês anterior (mesmo ano ou ano anterior se janeiro)
     const mesAnterior = mes > 1 ? mes - 1 : 12;
-    const dadosFonteMesAnterior = mes > 1 ? vendasData.anoAtual.data : vendasData.anoAnterior.data;
-    let dadosMesAnterior = filtrarPorSetor(dadosFonteMesAnterior);
-    dadosMesAnterior = filtrarPorMes(dadosMesAnterior, mesAnterior);
+    const fonteMesAnterior = mes > 1 ? dadosAnoAtualFiltrados : dadosFonteAnoAnterior;
+    const dadosMesAnterior = filtrarPorMes(fonteMesAnterior, mesAnterior);
 
     // Dados do mesmo mês do ano anterior
-    let dadosAnoAnterior = filtrarPorSetor(vendasData.anoAnterior.data);
-    dadosAnoAnterior = filtrarPorMes(dadosAnoAnterior, mes);
+    const dadosAnoAnterior = filtrarPorMes(dadosFonteAnoAnterior, mes);
 
     // Calcular dados base
     const dadosPorUF = calcularDadosPorUF(dadosMesAtual);

@@ -1,10 +1,11 @@
 import type { VendaItem, KPIData, FaturamentoMensal, FaturamentoPorCanal, TopItem, DevolucaoExtraItem } from "@/types/venda";
 import { getMesNome } from "./formatters";
+import { SECTOR_TO_EQUIPES } from "./constants";
 
-// Filtra vendas por equipe
+// Filtra vendas por equipe (case-insensitive, comparação exata)
 export function filtrarPorEquipe(data: VendaItem[], equipe: string): VendaItem[] {
   if (equipe === "TODAS") return data;
-  return data.filter((item) => item.Equipe?.trim() === equipe);
+  return data.filter((item) => item.Equipe?.trim().toUpperCase() === equipe.toUpperCase());
 }
 
 // Filtra vendas por mês
@@ -19,10 +20,69 @@ export function separarVendasDevolucoes(data: VendaItem[]) {
   return { vendas, devolucoes };
 }
 
-// Filtra devoluções extras por equipe
+// Filtra devoluções extras por equipe (case-insensitive, comparação exata)
 export function filtrarDevolucoesExtraPorEquipe(data: DevolucaoExtraItem[], equipe: string): DevolucaoExtraItem[] {
   if (equipe === "TODAS") return data;
   return data.filter((item) => item.Equipe?.trim().toUpperCase() === equipe.toUpperCase());
+}
+
+/**
+ * Filtra dados de vendas considerando setor do usuário.
+ * Usa comparação EXATA (não .includes()) para evitar contaminação cruzada.
+ */
+export function filtrarDadosComSetor(
+  dados: VendaItem[],
+  equipe: string,
+  sector: string | null
+): VendaItem[] {
+  if (!sector) {
+    return filtrarPorEquipe(dados, equipe);
+  }
+
+  const allowedEquipes = SECTOR_TO_EQUIPES[sector];
+  if (!allowedEquipes) return filtrarPorEquipe(dados, equipe);
+
+  // Equipe específica selecionada e pertence ao setor
+  if (equipe !== "TODAS" && allowedEquipes.some(
+    eq => eq.toUpperCase() === equipe.toUpperCase()
+  )) {
+    return filtrarPorEquipe(dados, equipe);
+  }
+
+  // "TODAS" dentro do setor - filtra por equipes permitidas (comparação EXATA)
+  return dados.filter(item =>
+    allowedEquipes.some(eq =>
+      item.Equipe?.trim().toUpperCase() === eq.toUpperCase()
+    )
+  );
+}
+
+/**
+ * Filtra devoluções extras considerando setor do usuário.
+ */
+export function filtrarDevolucoesExtraComSetor(
+  dados: DevolucaoExtraItem[],
+  equipe: string,
+  sector: string | null
+): DevolucaoExtraItem[] {
+  if (!sector) {
+    return filtrarDevolucoesExtraPorEquipe(dados, equipe);
+  }
+
+  const allowedEquipes = SECTOR_TO_EQUIPES[sector];
+  if (!allowedEquipes) return filtrarDevolucoesExtraPorEquipe(dados, equipe);
+
+  if (equipe !== "TODAS" && allowedEquipes.some(
+    eq => eq.toUpperCase() === equipe.toUpperCase()
+  )) {
+    return filtrarDevolucoesExtraPorEquipe(dados, equipe);
+  }
+
+  return dados.filter(item =>
+    allowedEquipes.some(eq =>
+      item.Equipe?.trim().toUpperCase() === eq.toUpperCase()
+    )
+  );
 }
 
 // Filtra devoluções extras por mês (extrai do campo ENTREGA)
