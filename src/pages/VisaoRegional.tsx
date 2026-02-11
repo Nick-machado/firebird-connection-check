@@ -7,7 +7,7 @@ import { RegionalDetailPanel } from "@/components/dashboard/RegionalDetailPanel"
 import { useVendasDoisAnos } from "@/hooks/useVendas";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useFiltros } from "@/contexts/FiltrosContext";
-import { filtrarPorEquipe, filtrarPorMes } from "@/lib/dataProcessing";
+import { filtrarPorEquipe, filtrarPorMes, filtrarDevolucoesExtraPorEquipe, filtrarDevolucoesExtraPorMes } from "@/lib/dataProcessing";
 import { SECTOR_TO_EQUIPES } from "@/lib/constants";
 import {
   calcularDadosPorUF,

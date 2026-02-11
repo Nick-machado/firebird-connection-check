@@ -75,6 +75,16 @@ export interface TopItem {
   margem?: number;
 }
 
+export interface DevolucaoExtraItem {
+  Nota: number;
+  ID: number;
+  ENTREGA: string;
+  Fornecedor: number;
+  TOTAL_LIQ: number;
+  "Referência": string;
+  Equipe: string;
+}
+
 export interface FiltrosVendas {
   ano: number;
   mes: number;
