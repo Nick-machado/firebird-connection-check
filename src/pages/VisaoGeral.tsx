@@ -10,9 +10,9 @@ import { useVendasDoisAnos } from "@/hooks/useVendas";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useFiltros } from "@/contexts/FiltrosContext";
 import {
-  filtrarPorEquipe,
   filtrarPorMes,
-  filtrarDevolucoesExtraPorEquipe,
+  filtrarDadosComSetor,
+  filtrarDevolucoesExtraComSetor,
   filtrarDevolucoesExtraPorMes,
   calcularKPIs,
   calcularFaturamentoMensal,
@@ -59,43 +59,11 @@ export default function VisaoGeral() {
     const devExtraAnoAtual = vendasData.devolucoesExtra?.anoAtual || [];
     const devExtraAnoAnterior = vendasData.devolucoesExtra?.anoAnterior || [];
 
-    // If user has a sector restriction, filter by allowed equipes
-    let equipeFilter = equipe;
-    if (sector && SECTOR_TO_EQUIPES[sector]) {
-      const allowedEquipes = SECTOR_TO_EQUIPES[sector];
-      if (equipe === "TODAS") {
-        equipeFilter = "SECTOR_FILTER";
-      } else if (!allowedEquipes.includes(equipe)) {
-        equipeFilter = allowedEquipes[0];
-      }
-    }
-
-    // Apply sector-based filtering
-    let dadosAnoAtualFiltrados;
-    let dadosAnoAnteriorFiltrados;
-    let devExtraAtualFiltrados;
-    let devExtraAnteriorFiltrados;
-
-    if (equipeFilter === "SECTOR_FILTER" && sector) {
-      const allowedEquipes = SECTOR_TO_EQUIPES[sector];
-      dadosAnoAtualFiltrados = dadosAnoAtual.filter(
-        (v) => allowedEquipes.some((eq) => v.Equipe?.toUpperCase().includes(eq.toUpperCase()))
-      );
-      dadosAnoAnteriorFiltrados = dadosAnoAnterior.filter(
-        (v) => allowedEquipes.some((eq) => v.Equipe?.toUpperCase().includes(eq.toUpperCase()))
-      );
-      devExtraAtualFiltrados = devExtraAnoAtual.filter(
-        (v) => allowedEquipes.some((eq) => v.Equipe?.toUpperCase().includes(eq.toUpperCase()))
-      );
-      devExtraAnteriorFiltrados = devExtraAnoAnterior.filter(
-        (v) => allowedEquipes.some((eq) => v.Equipe?.toUpperCase().includes(eq.toUpperCase()))
-      );
-    } else {
-      dadosAnoAtualFiltrados = filtrarPorEquipe(dadosAnoAtual, equipeFilter);
-      dadosAnoAnteriorFiltrados = filtrarPorEquipe(dadosAnoAnterior, equipeFilter);
-      devExtraAtualFiltrados = filtrarDevolucoesExtraPorEquipe(devExtraAnoAtual, equipeFilter);
-      devExtraAnteriorFiltrados = filtrarDevolucoesExtraPorEquipe(devExtraAnoAnterior, equipeFilter);
-    }
+    // Filtrar por equipe/setor usando função centralizada
+    const dadosAnoAtualFiltrados = filtrarDadosComSetor(dadosAnoAtual, equipe, sector);
+    const dadosAnoAnteriorFiltrados = filtrarDadosComSetor(dadosAnoAnterior, equipe, sector);
+    const devExtraAtualFiltrados = filtrarDevolucoesExtraComSetor(devExtraAnoAtual, equipe, sector);
+    const devExtraAnteriorFiltrados = filtrarDevolucoesExtraComSetor(devExtraAnoAnterior, equipe, sector);
 
     // Dados do mês selecionado
     const dadosMesFiltrados = filtrarPorMes(dadosAnoAtualFiltrados, mes);
@@ -190,7 +158,7 @@ export default function VisaoGeral() {
 
     // Filtra os dados de acordo com os filtros aplicados
     let dadosFiltrados = vendasData.anoAtual.data;
-    dadosFiltrados = filtrarPorEquipe(dadosFiltrados, equipe);
+    dadosFiltrados = filtrarDadosComSetor(dadosFiltrados, equipe, sector);
     dadosFiltrados = filtrarPorMes(dadosFiltrados, mes);
 
     // Cria o nome do arquivo com os filtros
