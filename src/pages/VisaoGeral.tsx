@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { FiltrosVendas } from "@/components/dashboard/FiltrosVendas";
 import { KPICard } from "@/components/dashboard/KPICard";
@@ -28,7 +28,8 @@ import { CHART_COLORS, SECTOR_TO_EQUIPES } from "@/lib/constants";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, DollarSign, TrendingDown, Receipt, Package, Percent, BarChart3, FileDown, AlertCircle } from "lucide-react";
+import { Loader2, DollarSign, TrendingDown, Receipt, Package, Percent, BarChart3, FileDown, AlertCircle, RefreshCw } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function VisaoGeral() {
   const anoAtual = new Date().getFullYear();
@@ -36,6 +37,7 @@ export default function VisaoGeral() {
 
   const { sector, canViewAllData, roleLabel, loading: roleLoading } = useUserRole();
   const { ano, mes, equipe, setAno, setMes, setEquipe } = useFiltros();
+  const queryClient = useQueryClient();
 
   // Set equipe based on user sector on mount
   useEffect(() => {
@@ -74,6 +76,20 @@ export default function VisaoGeral() {
     // KPIs do mês
     const kpisMes = calcularKPIs(dadosMesFiltrados, devExtraMes);
     const kpisMesAnterior = calcularKPIs(dadosMesAnteriorFiltrados, devExtraMesAnterior);
+
+    // Debug logging temporário
+    console.log(`📊 DEBUG MÊS ${mes}/${ano}:`, {
+      totalRegistrosAnoAtual: dadosAnoAtual.length,
+      registrosMesFiltrados: dadosMesFiltrados.length,
+      vendasCount: dadosMesFiltrados.filter(i => i['Flag Tipo']?.trim() === 'V').length,
+      devolucoesCount: dadosMesFiltrados.filter(i => i['Flag Tipo']?.trim() === 'D').length,
+      bruto: kpisMes.totalFaturado,
+      devolucoes: kpisMes.totalDevolucoes,
+      liquido: kpisMes.faturamentoLiquido,
+      devExtraMesCount: devExtraMes.length,
+      equipe,
+      sector,
+    });
 
     // Calcula variação YoY
     const variacaoFaturamento = kpisMesAnterior.faturamentoLiquido > 0
@@ -177,14 +193,25 @@ export default function VisaoGeral() {
             <h1 className="text-2xl font-bold text-foreground">Visão Geral de Vendas</h1>
             <p className="text-muted-foreground">Análise completa de faturamento, margem e performance</p>
           </div>
-          <Button
-            onClick={handleExportExcel}
-            className="gap-2"
-            variant="outline"
-          >
-            <FileDown className="h-4 w-4" />
-            Exportar Excel
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => queryClient.invalidateQueries({ queryKey: ["vendas-dois-anos"] })}
+              className="gap-2"
+              variant="outline"
+              disabled={isLoading}
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+            <Button
+              onClick={handleExportExcel}
+              className="gap-2"
+              variant="outline"
+            >
+              <FileDown className="h-4 w-4" />
+              Exportar Excel
+            </Button>
+          </div>
         </div>
 
         {/* Filtros */}
