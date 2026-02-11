@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import {
   BarChart3,
   Users,
+  Package,
   MapPin,
   Brain,
   Menu,
@@ -27,6 +28,7 @@ const menuItems: MenuItem[] = [
   { path: "/", label: "Visão Geral", icon: BarChart3 },
   { path: "/regional", label: "Regional", icon: MapPin },
   { path: "/clientes", label: "Clientes", icon: Users },
+  { path: "/produtos", label: "Produtos", icon: Package },
   { path: "/inteligencia", label: "Inteligência", icon: Brain, disabled: true },
 ];
 
