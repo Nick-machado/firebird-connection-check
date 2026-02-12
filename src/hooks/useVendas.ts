@@ -52,29 +52,8 @@ async function fetchDevolucoesExtra(dataInicio: string, dataFim: string): Promis
 }
 
 /**
- * Retorna o último dia do mês considerando anos bissextos
- */
-function getUltimoDiaMes(mes: number, ano: number): number {
-  return new Date(ano, mes, 0).getDate();
-}
-
-/**
- * Busca dados de um ano inteiro com uma única requisição
- */
-async function fetchAnoCompleto(ano: number): Promise<VendaItem[]> {
-  return fetchVendas(`01/01/${ano}`, `31/12/${ano}`);
-}
-
-/**
- * Busca devoluções extras de um ano inteiro com uma única requisição
- */
-async function fetchDevolucoesAnoCompleto(ano: number): Promise<DevolucaoExtraItem[]> {
-  return fetchDevolucoesExtra(`01/01/${ano}`, `31/12/${ano}`);
-}
-
-/**
  * Hook para buscar dados de vendas de 2 anos (ano selecionado + ano anterior)
- * Inclui devoluções extras da nova rota /api/vendas/devolucao
+ * Faz apenas 2 requisições cobrindo os 2 anos de uma vez
  */
 export function useVendasDoisAnos(anoSelecionado: number, enabled: boolean = true) {
   const anoAtual = anoSelecionado;
@@ -83,12 +62,16 @@ export function useVendasDoisAnos(anoSelecionado: number, enabled: boolean = tru
   return useQuery({
     queryKey: ["vendas-dois-anos", anoAtual],
     queryFn: async () => {
-      const [dadosAnoAtual, dadosAnoAnterior, devExtraAnoAtual, devExtraAnoAnterior] = await Promise.all([
-        fetchAnoCompleto(anoAtual),
-        fetchAnoCompleto(anoAnterior),
-        fetchDevolucoesAnoCompleto(anoAtual),
-        fetchDevolucoesAnoCompleto(anoAnterior),
+      const [vendasTotal, devolucoesTotal] = await Promise.all([
+        fetchVendas(`01/01/${anoAnterior}`, `31/12/${anoAtual}`),
+        fetchDevolucoesExtra(`01/01/${anoAnterior}`, `31/12/${anoAtual}`),
       ]);
+
+      const dadosAnoAtual = vendasTotal.filter(v => v.Ano === anoAtual);
+      const dadosAnoAnterior = vendasTotal.filter(v => v.Ano === anoAnterior);
+
+      const devExtraAnoAtual = devolucoesTotal.filter(d => new Date(d.ENTREGA).getFullYear() === anoAtual);
+      const devExtraAnoAnterior = devolucoesTotal.filter(d => new Date(d.ENTREGA).getFullYear() === anoAnterior);
 
       return {
         anoAtual: { ano: anoAtual, data: dadosAnoAtual },
