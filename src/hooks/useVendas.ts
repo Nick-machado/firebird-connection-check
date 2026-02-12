@@ -53,7 +53,7 @@ async function fetchDevolucoesExtra(dataInicio: string, dataFim: string): Promis
 
 /**
  * Hook para buscar dados de vendas de 2 anos (ano selecionado + ano anterior)
- * Faz apenas 2 requisições cobrindo os 2 anos de uma vez
+ * Faz 4 requisições escalonadas em 2 lotes para não sobrecarregar o backend
  */
 export function useVendasDoisAnos(anoSelecionado: number, enabled: boolean = true) {
   const anoAtual = anoSelecionado;
@@ -62,16 +62,17 @@ export function useVendasDoisAnos(anoSelecionado: number, enabled: boolean = tru
   return useQuery({
     queryKey: ["vendas-dois-anos", anoAtual],
     queryFn: async () => {
-      const [vendasTotal, devolucoesTotal] = await Promise.all([
-        fetchVendas(`01/01/${anoAnterior}`, `31/12/${anoAtual}`),
-        fetchDevolucoesExtra(`01/01/${anoAnterior}`, `31/12/${anoAtual}`),
+      // Lote 1: busca vendas dos 2 anos em paralelo
+      const [dadosAnoAtual, dadosAnoAnterior] = await Promise.all([
+        fetchVendas(`01/01/${anoAtual}`, `31/12/${anoAtual}`),
+        fetchVendas(`01/01/${anoAnterior}`, `31/12/${anoAnterior}`),
       ]);
 
-      const dadosAnoAtual = vendasTotal.filter(v => v.Ano === anoAtual);
-      const dadosAnoAnterior = vendasTotal.filter(v => v.Ano === anoAnterior);
-
-      const devExtraAnoAtual = devolucoesTotal.filter(d => new Date(d.ENTREGA).getFullYear() === anoAtual);
-      const devExtraAnoAnterior = devolucoesTotal.filter(d => new Date(d.ENTREGA).getFullYear() === anoAnterior);
+      // Lote 2: busca devoluções dos 2 anos em paralelo (após lote 1 terminar)
+      const [devExtraAnoAtual, devExtraAnoAnterior] = await Promise.all([
+        fetchDevolucoesExtra(`01/01/${anoAtual}`, `31/12/${anoAtual}`),
+        fetchDevolucoesExtra(`01/01/${anoAnterior}`, `31/12/${anoAnterior}`),
+      ]);
 
       return {
         anoAtual: { ano: anoAtual, data: dadosAnoAtual },
