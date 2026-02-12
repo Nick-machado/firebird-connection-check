@@ -51,9 +51,29 @@ async function fetchDevolucoesExtra(dataInicio: string, dataFim: string): Promis
   return result.data;
 }
 
+function getUltimoDiaMes(mes: number, ano: number): number {
+  return new Date(ano, mes, 0).getDate();
+}
+
+/**
+ * Busca vendas de um semestre (6 meses) fazendo queries mensais sequenciais
+ * para não sobrecarregar o backend
+ */
+async function fetchVendasSemestre(ano: number, mesInicio: number, mesFim: number): Promise<VendaItem[]> {
+  const resultados: VendaItem[] = [];
+  for (let mes = mesInicio; mes <= mesFim; mes++) {
+    const inicio = `01/${String(mes).padStart(2, '0')}/${ano}`;
+    const ultimoDia = getUltimoDiaMes(mes, ano);
+    const fim = `${ultimoDia}/${String(mes).padStart(2, '0')}/${ano}`;
+    const dados = await fetchVendas(inicio, fim);
+    resultados.push(...dados);
+  }
+  return resultados;
+}
+
 /**
  * Hook para buscar dados de vendas de 2 anos (ano selecionado + ano anterior)
- * Faz 4 requisições escalonadas em 2 lotes para não sobrecarregar o backend
+ * Faz queries mensais sequenciais para não sobrecarregar o backend
  */
 export function useVendasDoisAnos(anoSelecionado: number, enabled: boolean = true) {
   const anoAtual = anoSelecionado;
@@ -62,13 +82,18 @@ export function useVendasDoisAnos(anoSelecionado: number, enabled: boolean = tru
   return useQuery({
     queryKey: ["vendas-dois-anos", anoAtual],
     queryFn: async () => {
-      // Lote 1: busca vendas dos 2 anos em paralelo
-      const [dadosAnoAtual, dadosAnoAnterior] = await Promise.all([
-        fetchVendas(`01/01/${anoAtual}`, `31/12/${anoAtual}`),
-        fetchVendas(`01/01/${anoAnterior}`, `31/12/${anoAnterior}`),
-      ]);
+      // Busca vendas mês a mês para cada ano (sequencial para não sobrecarregar)
+      // Ano anterior: 2 semestres sequenciais
+      const dadosAnoAnteriorS1 = await fetchVendasSemestre(anoAnterior, 1, 6);
+      const dadosAnoAnteriorS2 = await fetchVendasSemestre(anoAnterior, 7, 12);
+      const dadosAnoAnterior = [...dadosAnoAnteriorS1, ...dadosAnoAnteriorS2];
 
-      // Lote 2: busca devoluções dos 2 anos em paralelo (após lote 1 terminar)
+      // Ano atual: 2 semestres sequenciais
+      const dadosAnoAtualS1 = await fetchVendasSemestre(anoAtual, 1, 6);
+      const dadosAnoAtualS2 = await fetchVendasSemestre(anoAtual, 7, 12);
+      const dadosAnoAtual = [...dadosAnoAtualS1, ...dadosAnoAtualS2];
+
+      // Devoluções são leves, busca anual em paralelo
       const [devExtraAnoAtual, devExtraAnoAnterior] = await Promise.all([
         fetchDevolucoesExtra(`01/01/${anoAtual}`, `31/12/${anoAtual}`),
         fetchDevolucoesExtra(`01/01/${anoAnterior}`, `31/12/${anoAnterior}`),
